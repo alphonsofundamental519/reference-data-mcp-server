@@ -2,6 +2,10 @@
 
 All notable changes to this project. Each entry links to its full per-version file in [changelog/](changelog/).
 
+## [0.1.2](changelog/0.1.x/0.1.2.md) — 2026-05-24
+
+Scope npm package to @cyanheads/reference-data-mcp-server; fix bundle script and author field
+
 ## [0.1.1](changelog/0.1.x/0.1.1.md) — 2026-05-24
 
 Launch release — 10 tools, 3 resources, 7 services, 97 tests; field-test fixes across all domains
