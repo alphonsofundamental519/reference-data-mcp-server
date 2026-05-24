@@ -45,6 +45,23 @@ function getIntlOffsetMinutes(ianaId: string, at?: Date): number {
   return Math.round((localMs - utcMs) / 60000);
 }
 
+/** Format a Date as a local ISO 8601 datetime string (no offset suffix) using UTC getters */
+function formatLocalDatetime(d: Date): string {
+  return [
+    d.getUTCFullYear(),
+    '-',
+    String(d.getUTCMonth() + 1).padStart(2, '0'),
+    '-',
+    String(d.getUTCDate()).padStart(2, '0'),
+    'T',
+    String(d.getUTCHours()).padStart(2, '0'),
+    ':',
+    String(d.getUTCMinutes()).padStart(2, '0'),
+    ':',
+    String(d.getUTCSeconds()).padStart(2, '0'),
+  ].join('');
+}
+
 /** Get timezone abbreviation using Intl */
 function getIntlAbbreviation(ianaId: string, at?: Date): string | null {
   const date = at ?? new Date();
@@ -310,22 +327,6 @@ export class TimezoneService {
     const targetMs = utcMs + toOffsetMin * 60000;
     const targetDate = new Date(targetMs);
 
-    function formatLocal(d: Date): string {
-      return [
-        d.getUTCFullYear(),
-        '-',
-        String(d.getUTCMonth() + 1).padStart(2, '0'),
-        '-',
-        String(d.getUTCDate()).padStart(2, '0'),
-        'T',
-        String(d.getUTCHours()).padStart(2, '0'),
-        ':',
-        String(d.getUTCMinutes()).padStart(2, '0'),
-        ':',
-        String(d.getUTCSeconds()).padStart(2, '0'),
-      ].join('');
-    }
-
     return {
       source: {
         datetime,
@@ -333,7 +334,7 @@ export class TimezoneService {
         offset: fromOffsetStr,
       },
       target: {
-        datetime: formatLocal(targetDate),
+        datetime: formatLocalDatetime(targetDate),
         tz: resolvedTo,
         offset: formatOffset(toOffsetMin),
       },

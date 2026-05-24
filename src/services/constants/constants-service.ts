@@ -73,13 +73,13 @@ export class ConstantsService {
 
     // Partial/fuzzy match — find all candidates by scanning names and aliases
     const candidates: Array<{ idx: number; score: number }> = [];
-    for (const c of this.all) {
+    for (const [idx, c] of this.all.entries()) {
       const allNames = [c.name, c.symbol, ...c.aliases].map((n) => n.toLowerCase());
       // Score: starts-with > contains
       if (allNames.some((n) => n.startsWith(queryLower))) {
-        candidates.push({ idx: this.all.indexOf(c), score: 2 });
+        candidates.push({ idx, score: 2 });
       } else if (allNames.some((n) => n.includes(queryLower))) {
-        candidates.push({ idx: this.all.indexOf(c), score: 1 });
+        candidates.push({ idx, score: 1 });
       }
     }
 

@@ -62,7 +62,7 @@ export class ElementsService {
       }
     }
 
-    return result ?? undefined;
+    return result;
   }
 
   search(

@@ -11,19 +11,6 @@
 
 ---
 
-## First Session
-
-This project was just scaffolded with `bunx @cyanheads/mcp-ts-core init`. The framework, skills, and example definitions are in place — the domain isn't. The user's first messages will set direction; wait for them before proceeding.
-
-> **Remove this section** from CLAUDE.md / AGENTS.md after completing these steps. The skills and conventions below remain — this block is one-time onboarding only.
-
-1. **Get your bearings.** Take stock of the project tree, the skills in `skills/`, and the tools/MCP servers available. Light tool use is fine for context-building — you're mapping the territory, not committing yet.
-2. **Read the framework docs** — `node_modules/@cyanheads/mcp-ts-core/CLAUDE.md` (builders, Context, errors, exports, conventions)
-3. **Run the `setup` skill** — read `skills/setup/SKILL.md` and follow its checklist (project orientation, agent protocol file selection, echo definition cleanup, skill sync)
-4. **Design the server** — read `skills/design-mcp-server/SKILL.md` and work through it with the user to map the domain into tools, resources, and services before scaffolding
-
----
-
 ## What's Next?
 
 When the user asks what's next or needs direction, suggest options based on the current project state. Common next steps:
@@ -60,36 +47,32 @@ Tailor suggestions to what's actually missing or stale — don't recite the full
 
 ```ts
 import { tool, z } from '@cyanheads/mcp-ts-core';
+import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
+import { getGeoService } from '@/services/geo/geo-service.js';
 
-export const searchItems = tool('search_items', {
-  description: 'Search inventory items by query.',
-  annotations: { readOnlyHint: true },
+export const refGeoLookup = tool('ref_geo_lookup', {
+  title: 'Country Lookup',
+  description: 'Look up a country by name, ISO alpha-2 code, or ISO alpha-3 code.',
+  annotations: { readOnlyHint: true, openWorldHint: false },
   input: z.object({
-    query: z.string().describe('Search terms'),
-    limit: z.number().default(10).describe('Max results'),
+    query: z.string().describe('Country name, alpha-2 code, or alpha-3 code.'),
+    by: z.enum(['auto', 'name', 'alpha2', 'alpha3']).default('auto').describe('Lookup strategy.'),
   }),
   output: z.object({
-    items: z.array(z.object({
-      id: z.string().describe('Item ID'),
-      name: z.string().describe('Item name'),
-    })).describe('Matching items'),
+    name: z.string().describe('Official English country name.'),
+    // ... full output schema
   }),
-  auth: ['inventory:read'],
-
-  async handler(input, ctx) {
-    const items = await findItems(input.query, input.limit);
-    ctx.log.info('Search completed', { query: input.query, count: items.length });
-    return { items };
+  errors: [
+    { reason: 'no_match', code: JsonRpcErrorCode.NotFound,
+      when: 'No country matched the query.',
+      recovery: 'Try a different spelling or use ref_geo_search with a keyword to browse.' },
+  ],
+  handler(input, ctx) {
+    const result = getGeoService().lookup(input.query, input.by, ctx);
+    if (!result || result === 'numeric_unsupported') throw ctx.fail('no_match', `No match for "${input.query}"`);
+    return result;
   },
-
-  // format() populates content[] — the markdown twin of structuredContent.
-  // Different clients read different surfaces (Claude Code → structuredContent,
-  // Claude Desktop → content[]); both must carry the same data.
-  // Enforced at lint time: every field in `output` must appear in the rendered text.
-  format: (result) => [{
-    type: 'text',
-    text: result.items.map(i => `**${i.id}**: ${i.name}`).join('\n'),
-  }],
+  format: (result) => [{ type: 'text', text: `**${result.name}**` }],
 });
 ```
 
@@ -98,59 +81,20 @@ export const searchItems = tool('search_items', {
 ```ts
 import { resource, z } from '@cyanheads/mcp-ts-core';
 import { notFound } from '@cyanheads/mcp-ts-core/errors';
+import { getGeoService } from '@/services/geo/geo-service.js';
 
-export const itemData = resource('inventory://{itemId}', {
-  description: 'Fetch an inventory item by ID.',
-  params: z.object({ itemId: z.string().describe('Item identifier') }),
-  auth: ['inventory:read'],
-  async handler(params, ctx) {
-    const item = await ctx.state.get(`item:${params.itemId}`);
-    if (!item) throw notFound(`Item ${params.itemId} not found`, { itemId: params.itemId });
-    return item;
+export const refCountriesResource = resource('ref://countries/{alpha2}', {
+  name: 'ref-country',
+  description: 'Full country record by ISO alpha-2 code.',
+  mimeType: 'application/json',
+  params: z.object({ alpha2: z.string().describe('ISO 3166-1 alpha-2 country code.') }),
+  handler(params) {
+    const record = getGeoService().lookupByAlpha2(params.alpha2.toUpperCase());
+    if (!record) throw notFound(`Country "${params.alpha2}" not found.`, { alpha2: params.alpha2 });
+    return record;
   },
 });
 ```
-
-### Prompt
-
-```ts
-import { prompt, z } from '@cyanheads/mcp-ts-core';
-
-export const reviewCode = prompt('review_code', {
-  description: 'Review code for issues and best practices.',
-  args: z.object({
-    code: z.string().describe('Code to review'),
-    language: z.string().optional().describe('Programming language'),
-  }),
-  generate: (args) => [
-    { role: 'user', content: { type: 'text', text: `Review this ${args.language ?? ''} code:\n${args.code}` } },
-  ],
-});
-```
-
-### Server config
-
-```ts
-// src/config/server-config.ts — lazy-parsed, separate from framework config
-import { z } from '@cyanheads/mcp-ts-core';
-import { parseEnvConfig } from '@cyanheads/mcp-ts-core/config';
-
-const ServerConfigSchema = z.object({
-  apiKey: z.string().describe('External API key'),
-  maxResults: z.coerce.number().default(100),
-});
-
-let _config: z.infer<typeof ServerConfigSchema> | undefined;
-export function getServerConfig() {
-  _config ??= parseEnvConfig(ServerConfigSchema, {
-    apiKey: 'MY_API_KEY',
-    maxResults: 'MY_MAX_RESULTS',
-  });
-  return _config;
-}
-```
-
-`parseEnvConfig` maps Zod schema paths → env var names so errors name the variable (`MY_API_KEY`) not the path (`apiKey`). Throws `ConfigurationError`, which the framework prints as a clean startup banner.
 
 ---
 
@@ -161,11 +105,7 @@ Handlers receive a unified `ctx` object. Key properties:
 | Property | Description |
 |:---------|:------------|
 | `ctx.log` | Request-scoped logger — `.debug()`, `.info()`, `.notice()`, `.warning()`, `.error()`. Auto-correlates requestId, traceId, tenantId. |
-| `ctx.state` | Tenant-scoped KV — `.get(key)`, `.set(key, value, { ttl? })`, `.delete(key)`, `.list(prefix, { cursor, limit })`. Accepts any serializable value. |
-| `ctx.elicit` | Ask user for structured input. **Check for presence first:** `if (ctx.elicit) { ... }` |
-| `ctx.sample` | Request LLM completion from the client. **Check for presence first:** `if (ctx.sample) { ... }` |
 | `ctx.signal` | `AbortSignal` for cancellation. |
-| `ctx.progress` | Task progress (present when `task: true`) — `.setTotal(n)`, `.increment()`, `.update(message)`. |
 | `ctx.requestId` | Unique request ID. |
 | `ctx.tenantId` | Tenant ID from JWT or `'default'` for stdio. |
 
@@ -217,20 +157,36 @@ See framework CLAUDE.md and the `api-errors` skill for the full auto-classificat
 
 ```text
 src/
-  index.ts                              # createApp() entry point
-  config/
-    server-config.ts                    # Server-specific env vars (Zod schema)
+  index.ts                              # createApp() entry point — registers tools/resources, inits services
+  data/
+    http-status-codes.ts                # IANA HTTP status code registry data
+    periodic-table.ts                   # PubChem/IUPAC 2024 element dataset
+    physical-constants.ts               # CODATA 2022 physical constants dataset
   services/
-    [domain]/
-      [domain]-service.ts               # Domain service (init/accessor pattern)
-      types.ts                          # Domain types
+    constants/
+      constants-service.ts              # Physical constants lookup (CODATA 2022)
+    elements/
+      elements-service.ts               # Periodic table lookup and search
+      types.ts
+    geo/
+      geo-service.ts                    # Country lookup and search (countries-list)
+      types.ts
+    http-status/
+      http-status-service.ts            # HTTP status code lookup
+    mime/
+      mime-service.ts                   # MIME type lookup (mime-db)
+    timezone/
+      timezone-service.ts               # IANA timezone lookup and conversion (Intl + @vvo/tzdb)
+      types.ts
+    units/
+      units-service.ts                  # Unit conversion (convert-units)
   mcp-server/
     tools/definitions/
-      [tool-name].tool.ts               # Tool definitions
+      [tool-name].tool.ts               # Tool definitions (10 tools)
     resources/definitions/
-      [resource-name].resource.ts       # Resource definitions
-    prompts/definitions/
-      [prompt-name].prompt.ts           # Prompt definitions
+      [resource-name].resource.ts       # Resource definitions (3 resources)
+  types/
+    convert-units.d.ts                  # Type declarations for convert-units v2.x
 ```
 
 ---

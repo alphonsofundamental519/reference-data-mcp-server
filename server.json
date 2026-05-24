@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "cyanheads/reference-data-mcp-server",
-  "description": "Reference lookups: countries, timezones, elements, constants, units, HTTP status, MIME types.",
+  "name": "io.github.cyanheads/reference-data-mcp-server",
+  "description": "Look up countries, timezones, periodic table elements, physical constants, units, HTTP status codes, and MIME types.",
   "repository": {
-    "url": "https://github.com/cyanheads/reference-data-mcp-server",
+    "url": "https://github.com/cyanheads/reference-data-mcp-server.git",
     "source": "github"
   },
   "version": "0.1.0",
@@ -12,7 +12,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "reference-data-mcp-server",
-      "runtimeHint": "node",
+      "runtimeHint": "bun",
       "version": "0.1.0",
       "packageArguments": [
         {
@@ -41,7 +41,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "reference-data-mcp-server",
-      "runtimeHint": "node",
+      "runtimeHint": "bun",
       "version": "0.1.0",
       "packageArguments": [
         {

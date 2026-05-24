@@ -97,21 +97,20 @@ export const refGeoLookup = tool('ref_geo_lookup', {
         `No country matched "${input.query}". Try a different spelling or use ref_geo_search with a keyword.`,
       );
     }
-    const record = result;
     return {
-      alpha2: record.alpha2,
-      alpha3: record.alpha3,
-      name: record.name,
-      native_name: record.native_name,
-      capital: record.capital,
-      region: record.region,
-      subregion: record.subregion,
-      languages: record.languages,
-      currencies: record.currencies,
-      calling_codes: record.calling_codes,
-      tld: record.tld,
-      flag: record.flag,
-      timezones: record.timezones,
+      alpha2: result.alpha2,
+      alpha3: result.alpha3,
+      name: result.name,
+      native_name: result.native_name,
+      capital: result.capital,
+      region: result.region,
+      subregion: result.subregion,
+      languages: result.languages,
+      currencies: result.currencies,
+      calling_codes: result.calling_codes,
+      tld: result.tld,
+      flag: result.flag,
+      timezones: result.timezones,
     };
   },
 

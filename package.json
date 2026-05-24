@@ -1,7 +1,8 @@
 {
   "name": "reference-data-mcp-server",
   "version": "0.1.0",
-  "description": "",
+  "mcpName": "io.github.cyanheads/reference-data-mcp-server",
+  "description": "Look up countries, timezones, periodic table elements, physical constants, units, HTTP status codes, and MIME types via MCP. STDIO or Streamable HTTP.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -37,12 +38,35 @@
     "start:stdio": "MCP_TRANSPORT_TYPE=stdio node dist/index.js",
     "start:http": "MCP_TRANSPORT_TYPE=http node dist/index.js"
   },
-  "keywords": ["mcp", "mcp-server", "model-context-protocol"],
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "typescript",
+    "bun",
+    "stdio",
+    "streamable-http",
+    "reference-data",
+    "countries",
+    "timezones",
+    "periodic-table",
+    "elements",
+    "physical-constants",
+    "unit-conversion",
+    "http-status",
+    "mime-types"
+  ],
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/cyanheads/reference-data-mcp-server.git"
   },
+  "homepage": "https://github.com/cyanheads/reference-data-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/cyanheads/reference-data-mcp-server/issues"
+  },
+  "author": "Casey Hand <casey@caseyjhand.com> (https://github.com/cyanheads)",
   "license": "Apache-2.0",
+  "packageManager": "bun@1.3.11",
   "engines": {
     "bun": ">=1.3.0",
     "node": ">=24.0.0"
