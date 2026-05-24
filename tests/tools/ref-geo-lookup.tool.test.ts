@@ -1,0 +1,113 @@
+/**
+ * @fileoverview Tests for the ref_geo_lookup tool.
+ * @module tests/tools/ref-geo-lookup.tool.test
+ */
+
+import { createMockContext } from '@cyanheads/mcp-ts-core/testing';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { refGeoLookup } from '@/mcp-server/tools/definitions/ref-geo-lookup.tool.js';
+import { initGeoService } from '@/services/geo/geo-service.js';
+import { initTimezoneService } from '@/services/timezone/timezone-service.js';
+
+beforeAll(() => {
+  initTimezoneService();
+  initGeoService();
+});
+
+describe('refGeoLookup', () => {
+  it('looks up Germany by alpha-2 code', async () => {
+    const ctx = createMockContext();
+    const input = refGeoLookup.input.parse({ query: 'DE' });
+    const result = await refGeoLookup.handler(input, ctx);
+    expect(result.alpha2).toBe('DE');
+    expect(result.alpha3).toBe('DEU');
+    expect(result.name).toBe('Germany');
+    expect(result.region).toBe('Europe');
+    expect(result.flag).toBeTruthy();
+    expect(result.timezones).toBeInstanceOf(Array);
+    expect(result.currencies).toBeInstanceOf(Array);
+    expect(result.languages).toBeInstanceOf(Array);
+  });
+
+  it('looks up United States by alpha-3 code', async () => {
+    const ctx = createMockContext();
+    const input = refGeoLookup.input.parse({ query: 'USA', by: 'alpha3' });
+    const result = await refGeoLookup.handler(input, ctx);
+    expect(result.alpha2).toBe('US');
+    expect(result.name).toBe('United States');
+    expect(result.calling_codes).toContain('+1');
+  });
+
+  it('looks up Japan by name', async () => {
+    const ctx = createMockContext();
+    const input = refGeoLookup.input.parse({ query: 'Japan', by: 'name' });
+    const result = await refGeoLookup.handler(input, ctx);
+    expect(result.alpha2).toBe('JP');
+    expect(result.tld).toBe('.jp');
+  });
+
+  it('auto mode resolves two-letter input as alpha2', async () => {
+    const ctx = createMockContext();
+    const input = refGeoLookup.input.parse({ query: 'FR' });
+    const result = await refGeoLookup.handler(input, ctx);
+    expect(result.alpha2).toBe('FR');
+    expect(result.name).toBe('France');
+  });
+
+  it('throws for unrecognized query', async () => {
+    const ctx = createMockContext();
+    const input = refGeoLookup.input.parse({ query: 'XYZZY_NO_COUNTRY' });
+    expect(() => refGeoLookup.handler(input, ctx)).toThrow();
+  });
+
+  it('formats output with flag, name, codes, and timezones', () => {
+    const output = {
+      alpha2: 'DE',
+      alpha3: 'DEU',
+      name: 'Germany',
+      native_name: 'Deutschland',
+      capital: 'Berlin',
+      region: 'Europe',
+      subregion: 'Western Europe',
+      languages: [{ code: 'de', name: 'German' }],
+      currencies: [{ code: 'EUR', name: 'Euro', symbol: '€' }],
+      calling_codes: ['+49'],
+      tld: '.de',
+      flag: '🇩🇪',
+      timezones: ['Europe/Berlin'],
+    };
+    const blocks = refGeoLookup.format!(output);
+    const text = blocks[0]!.text as string;
+    expect(text).toContain('Germany');
+    expect(text).toContain('DE');
+    expect(text).toContain('DEU');
+    expect(text).toContain('Berlin');
+    expect(text).toContain('Europe');
+    expect(text).toContain('German');
+    expect(text).toContain('Euro');
+    expect(text).toContain('+49');
+    expect(text).toContain('Europe/Berlin');
+  });
+
+  it('formats null capital and subregion gracefully', () => {
+    const output = {
+      alpha2: 'AQ',
+      alpha3: 'ATA',
+      name: 'Antarctica',
+      native_name: 'Antarctica',
+      capital: null,
+      region: 'Antarctic',
+      subregion: null,
+      languages: [],
+      currencies: [],
+      calling_codes: [],
+      tld: '.aq',
+      flag: '🇦🇶',
+      timezones: [],
+    };
+    const blocks = refGeoLookup.format!(output);
+    const text = blocks[0]!.text as string;
+    expect(text).toContain('Antarctica');
+    expect(text).toContain('N/A');
+  });
+});

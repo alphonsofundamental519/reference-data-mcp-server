@@ -1,0 +1,137 @@
+/**
+ * @fileoverview Tests for the ref_geo_search tool.
+ * @module tests/tools/ref-geo-search.tool.test
+ */
+
+import { createMockContext } from '@cyanheads/mcp-ts-core/testing';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { refGeoSearch } from '@/mcp-server/tools/definitions/ref-geo-search.tool.js';
+import { initGeoService } from '@/services/geo/geo-service.js';
+import { initTimezoneService } from '@/services/timezone/timezone-service.js';
+
+beforeAll(() => {
+  initTimezoneService();
+  initGeoService();
+});
+
+describe('refGeoSearch', () => {
+  it('searches by region', async () => {
+    const ctx = createMockContext();
+    const input = refGeoSearch.input.parse({ region: 'Oceania' });
+    const result = await refGeoSearch.handler(input, ctx);
+    expect(result.total_matches).toBeGreaterThan(0);
+    expect(result.results.every((c) => c.region === 'Oceania')).toBe(true);
+    // Oceania has ~20 countries, default limit is 20 so may not be truncated
+    expect(typeof result.truncated).toBe('boolean');
+  });
+
+  it('searches by language code', async () => {
+    const ctx = createMockContext();
+    const input = refGeoSearch.input.parse({ language: 'pt' });
+    const result = await refGeoSearch.handler(input, ctx);
+    expect(result.total_matches).toBeGreaterThan(0);
+    // Should include Brazil and Portugal at minimum
+    const names = result.results.map((c) => c.name);
+    expect(names.some((n) => n.includes('Brazil') || n.includes('Portugal'))).toBe(true);
+  });
+
+  it('searches by currency', async () => {
+    const ctx = createMockContext();
+    const input = refGeoSearch.input.parse({ currency: 'EUR' });
+    const result = await refGeoSearch.handler(input, ctx);
+    expect(result.total_matches).toBeGreaterThan(0);
+    // EUR is used by many EU countries
+    expect(result.total_matches).toBeGreaterThan(5);
+  });
+
+  it('applies limit correctly', async () => {
+    const ctx = createMockContext();
+    const input = refGeoSearch.input.parse({ region: 'Americas', limit: 5 });
+    const result = await refGeoSearch.handler(input, ctx);
+    expect(result.results.length).toBeLessThanOrEqual(5);
+    if (result.total_matches > 5) {
+      expect(result.truncated).toBe(true);
+    }
+  });
+
+  it('searches by keyword matching capital', async () => {
+    const ctx = createMockContext();
+    const input = refGeoSearch.input.parse({ keyword: 'Tokyo' });
+    const result = await refGeoSearch.handler(input, ctx);
+    expect(result.total_matches).toBeGreaterThan(0);
+    const names = result.results.map((c) => c.name);
+    expect(names).toContain('Japan');
+  });
+
+  it('throws when no filter provided', async () => {
+    const ctx = createMockContext();
+    const input = refGeoSearch.input.parse({});
+    expect(() => refGeoSearch.handler(input, ctx)).toThrow(/at least one/i);
+  });
+
+  it('returns message hint with no results', async () => {
+    const ctx = createMockContext();
+    const input = refGeoSearch.input.parse({ region: 'Oceania', language: 'de' });
+    const result = await refGeoSearch.handler(input, ctx);
+    // German-speaking countries are not in Oceania
+    expect(result.total_matches).toBe(0);
+    expect(result.results).toHaveLength(0);
+    expect(result.message).toBeTruthy();
+  });
+
+  it('formats results with flags, names, and codes', () => {
+    const output = {
+      results: [
+        {
+          alpha2: 'DE',
+          alpha3: 'DEU',
+          name: 'Germany',
+          capital: 'Berlin',
+          region: 'Europe',
+          currency_code: 'EUR',
+          flag: '🇩🇪',
+        },
+        {
+          alpha2: 'FR',
+          alpha3: 'FRA',
+          name: 'France',
+          capital: 'Paris',
+          region: 'Europe',
+          currency_code: 'EUR',
+          flag: '🇫🇷',
+        },
+      ],
+      total_matches: 2,
+      truncated: false,
+    };
+    const blocks = refGeoSearch.format!(output);
+    const text = blocks[0]!.text as string;
+    expect(text).toContain('2');
+    expect(text).toContain('Germany');
+    expect(text).toContain('DE');
+    expect(text).toContain('France');
+    expect(text).toContain('Paris');
+    expect(text).toContain('EUR');
+  });
+
+  it('formats truncated flag', () => {
+    const output = {
+      results: [
+        {
+          alpha2: 'US',
+          alpha3: 'USA',
+          name: 'United States',
+          capital: 'Washington, D.C.',
+          region: 'Americas',
+          currency_code: 'USD',
+          flag: '🇺🇸',
+        },
+      ],
+      total_matches: 50,
+      truncated: true,
+    };
+    const blocks = refGeoSearch.format!(output);
+    const text = blocks[0]!.text as string;
+    expect(text).toContain('truncated');
+  });
+});

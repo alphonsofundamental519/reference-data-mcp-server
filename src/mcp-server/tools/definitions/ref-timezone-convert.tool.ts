@@ -1,0 +1,81 @@
+/**
+ * @fileoverview Tool for converting a local datetime from one timezone to another.
+ * @module mcp-server/tools/definitions/ref-timezone-convert
+ */
+
+import { tool, z } from '@cyanheads/mcp-ts-core';
+import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
+import { getTimezoneService } from '@/services/timezone/timezone-service.js';
+
+export const refTimezoneConvert = tool('ref_timezone_convert', {
+  title: 'Timezone Conversion',
+  description:
+    'Convert a local datetime from one timezone to another. Takes a local time string (no UTC offset, e.g., "2026-05-24T15:30:00") interpreted as local time in the source timezone, returns the equivalent local time in the target timezone. Shows both UTC offsets so DST transitions are visible. Accepts full IANA IDs (e.g., "Asia/Tokyo") or unambiguous city names (e.g., "Tokyo").',
+  annotations: { readOnlyHint: true, openWorldHint: false },
+
+  input: z.object({
+    datetime: z
+      .string()
+      .describe(
+        'Local datetime in ISO 8601 format without timezone offset (e.g., "2026-05-24T15:30:00"). Do not include "Z" or an offset suffix.',
+      ),
+    from_tz: z
+      .string()
+      .describe(
+        'Source IANA timezone ID or unambiguous city name (e.g., "Asia/Tokyo" or "Tokyo").',
+      ),
+    to_tz: z
+      .string()
+      .describe(
+        'Target IANA timezone ID or unambiguous city name (e.g., "America/New_York" or "New York").',
+      ),
+  }),
+
+  output: z.object({
+    source: z
+      .object({
+        datetime: z.string().describe('Input local datetime string as provided.'),
+        tz: z.string().describe('Resolved source IANA timezone ID.'),
+        offset: z.string().describe('UTC offset at the source datetime (e.g., "+09:00").'),
+      })
+      .describe('Source datetime details.'),
+    target: z
+      .object({
+        datetime: z.string().describe('Equivalent local datetime in the target timezone.'),
+        tz: z.string().describe('Resolved target IANA timezone ID.'),
+        offset: z.string().describe('UTC offset in the target timezone at the converted moment.'),
+      })
+      .describe('Target datetime details.'),
+    utc_equivalent: z
+      .string()
+      .describe('The UTC equivalent of the input datetime (ISO 8601 with Z suffix).'),
+  }),
+
+  errors: [
+    {
+      reason: 'invalid_timezone',
+      code: JsonRpcErrorCode.InvalidParams,
+      when: 'Source or target timezone ID is unrecognized.',
+      recovery: 'Use ref_timezone_lookup to find the correct IANA ID for the desired location.',
+    },
+    {
+      reason: 'invalid_datetime',
+      code: JsonRpcErrorCode.InvalidParams,
+      when: 'Datetime string is malformed or contains a timezone offset.',
+      recovery: 'Use ISO 8601 without any timezone offset, e.g., "2026-05-24T15:30:00".',
+    },
+  ],
+
+  handler(input, ctx) {
+    return getTimezoneService().convert(input.datetime, input.from_tz, input.to_tz, ctx);
+  },
+
+  format: (result) => {
+    const lines = [
+      `**Source:** ${result.source.datetime} (${result.source.tz}, UTC${result.source.offset})`,
+      `**Target:** ${result.target.datetime} (${result.target.tz}, UTC${result.target.offset})`,
+      `**UTC equivalent:** ${result.utc_equivalent}`,
+    ];
+    return [{ type: 'text', text: lines.join('\n') }];
+  },
+});

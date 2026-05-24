@@ -5,17 +5,60 @@
  */
 
 import { createApp } from '@cyanheads/mcp-ts-core';
-import { echoTool } from './mcp-server/tools/definitions/echo.tool.js';
-import { echoAppTool } from './mcp-server/tools/definitions/echo-app.app-tool.js';
-import { echoResource } from './mcp-server/resources/definitions/echo.resource.js';
-import { echoAppUiResource } from './mcp-server/resources/definitions/echo-app-ui.app-resource.js';
-import { echoPrompt } from './mcp-server/prompts/definitions/echo.prompt.js';
+// Resources
+import { refCountriesResource } from './mcp-server/resources/definitions/ref-countries.resource.js';
+import { refElementsResource } from './mcp-server/resources/definitions/ref-elements.resource.js';
+import { refTimezonesResource } from './mcp-server/resources/definitions/ref-timezones.resource.js';
+import { refConstantLookup } from './mcp-server/tools/definitions/ref-constant-lookup.tool.js';
+import { refElementLookup } from './mcp-server/tools/definitions/ref-element-lookup.tool.js';
+import { refElementSearch } from './mcp-server/tools/definitions/ref-element-search.tool.js';
+// Tools
+import { refGeoLookup } from './mcp-server/tools/definitions/ref-geo-lookup.tool.js';
+import { refGeoSearch } from './mcp-server/tools/definitions/ref-geo-search.tool.js';
+import { refHttpStatus } from './mcp-server/tools/definitions/ref-http-status.tool.js';
+import { refMimeType } from './mcp-server/tools/definitions/ref-mime-type.tool.js';
+import { refTimezoneConvert } from './mcp-server/tools/definitions/ref-timezone-convert.tool.js';
+import { refTimezoneLookup } from './mcp-server/tools/definitions/ref-timezone-lookup.tool.js';
+import { refUnitConvert } from './mcp-server/tools/definitions/ref-unit-convert.tool.js';
+import { initConstantsService } from './services/constants/constants-service.js';
+import { initElementsService } from './services/elements/elements-service.js';
+import { initGeoService } from './services/geo/geo-service.js';
+import { initHttpStatusService } from './services/http-status/http-status-service.js';
+import { initMimeService } from './services/mime/mime-service.js';
+// Services
+import { initTimezoneService } from './services/timezone/timezone-service.js';
+import { initUnitsService } from './services/units/units-service.js';
 
 await createApp({
-  tools: [echoTool, echoAppTool],
-  resources: [echoResource, echoAppUiResource],
-  prompts: [echoPrompt],
-  // instructions: 'Server-level orientation forwarded to the model on every initialize.\n' +
-  //   '- Use shortcut `X` for the most common case\n' +
-  //   '- Tools require auth via the `inventory:read` scope',
+  tools: [
+    refGeoLookup,
+    refGeoSearch,
+    refTimezoneLookup,
+    refTimezoneConvert,
+    refElementLookup,
+    refElementSearch,
+    refConstantLookup,
+    refUnitConvert,
+    refHttpStatus,
+    refMimeType,
+  ],
+  resources: [refCountriesResource, refElementsResource, refTimezonesResource],
+  prompts: [],
+  instructions:
+    'Pure in-memory reference data server. No external API calls, no auth required. ' +
+    'Use ref_geo_lookup/search for country data, ref_timezone_lookup/convert for timezone operations, ' +
+    'ref_element_lookup/search for periodic table, ref_constant_lookup for CODATA 2022 physical constants, ' +
+    'ref_unit_convert for unit conversion, ref_http_status for HTTP status codes, ' +
+    'ref_mime_type for MIME type and file extension lookups.',
+
+  setup() {
+    // Initialize order matters: timezone service must init before geo (geo uses it for country→tz mapping)
+    initTimezoneService();
+    initGeoService();
+    initElementsService();
+    initConstantsService();
+    initUnitsService();
+    initHttpStatusService();
+    initMimeService();
+  },
 });
