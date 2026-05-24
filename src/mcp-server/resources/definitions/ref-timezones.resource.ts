@@ -48,12 +48,11 @@ export const refTimezonesResource = resource('ref://timezones/{iana_id}', {
     }
 
     const records = getTimezoneService().lookup(ianaId, 'iana', undefined, ctx);
-    if (records.length === 0) {
+    if (!records || records.length === 0) {
       throw notFound(`No timezone data found for "${ianaId}".`, { iana_id: ianaId });
     }
 
-    // records.length > 0 guaranteed by the guard above
-    const record = records[0] as NonNullable<(typeof records)[0]>;
+    const record = records[0] as NonNullable<(typeof records)[number]>;
     return {
       ...record,
       evaluated_at: new Date().toISOString(),

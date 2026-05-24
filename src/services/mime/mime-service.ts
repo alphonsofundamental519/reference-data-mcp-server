@@ -4,7 +4,6 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { notFound } from '@cyanheads/mcp-ts-core/errors';
 import mimeDb from 'mime-db';
 
 export interface MimeResult {
@@ -30,7 +29,7 @@ export class MimeService {
     }
   }
 
-  lookup(query: string, ctx: Context): MimeResult {
+  lookup(query: string, ctx: Context): MimeResult | undefined {
     ctx.log.debug('MIME lookup', { query });
 
     // Normalize: strip leading dot
@@ -41,12 +40,7 @@ export class MimeService {
       const info = (
         mimeDb as Record<string, { extensions?: string[]; compressible?: boolean; source?: string }>
       )[normalized.toLowerCase()];
-      if (!info) {
-        throw notFound(
-          `MIME type "${query}" not found. Check spelling or use the full IANA type string (e.g., "application/json").`,
-          { query },
-        );
-      }
+      if (!info) return;
       return {
         type: normalized.toLowerCase(),
         extensions: info.extensions ?? [],
@@ -58,12 +52,7 @@ export class MimeService {
     // Extension lookup
     const ext = normalized.toLowerCase();
     const types = this.byExtension.get(ext);
-    if (!types || types.length === 0) {
-      throw notFound(
-        `No MIME type found for extension "${query}". Check spelling or use the full IANA type string (e.g., "image/jpeg").`,
-        { query },
-      );
-    }
+    if (!types || types.length === 0) return;
 
     // types.length > 0 is guaranteed by the guard above
     const primary = types[0] as string;

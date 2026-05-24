@@ -68,9 +68,25 @@ describe('refTimezoneLookup', () => {
   });
 
   it('throws for unrecognized timezone', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refTimezoneLookup.errors });
     const input = refTimezoneLookup.input.parse({ query: 'Galaxy/FakeCity_9999', by: 'iana' });
     expect(() => refTimezoneLookup.handler(input, ctx)).toThrow(/No timezone matched/);
+  });
+
+  it('resolves UTC as a valid timezone', async () => {
+    const ctx = createMockContext({ errors: refTimezoneLookup.errors });
+    const input = refTimezoneLookup.input.parse({ query: 'UTC' });
+    const result = await refTimezoneLookup.handler(input, ctx);
+    expect(result.timezones.length).toBeGreaterThan(0);
+    expect(result.timezones[0]!.iana_id).toBe('UTC');
+  });
+
+  it('resolves GMT as an alias for UTC', async () => {
+    const ctx = createMockContext({ errors: refTimezoneLookup.errors });
+    const input = refTimezoneLookup.input.parse({ query: 'GMT' });
+    const result = await refTimezoneLookup.handler(input, ctx);
+    expect(result.timezones.length).toBeGreaterThan(0);
+    expect(result.timezones[0]!.iana_id).toBe('UTC');
   });
 
   it('formats output with IANA ID, offsets, and DST status', () => {

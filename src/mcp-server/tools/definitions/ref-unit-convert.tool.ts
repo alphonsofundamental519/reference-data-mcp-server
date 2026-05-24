@@ -5,12 +5,13 @@
 
 import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
+import type { ConversionError } from '@/services/units/units-service.js';
 import { getUnitsService } from '@/services/units/units-service.js';
 
 export const refUnitConvert = tool('ref_unit_convert', {
   title: 'Unit Conversion',
   description:
-    'Convert a numeric value between compatible units of measure. Supports: length (mm, cm, m, km, in, ft, yd, mi, etc.), mass (g, kg, lb, oz, stone, ton, etc.), volume (mL, L, fl oz, cup, pt, qt, gal, m³, etc.), temperature (C, F, K, R — non-linear conversions handled), speed (m/s, km/h, mph, knot, ft/s), pressure (Pa, kPa, bar, atm, psi, mmHg, torr), energy (J, kJ, cal, kcal, Wh, kWh, eV, BTU), power (W, kW, MW, hp), frequency (Hz, kHz, MHz, GHz), digital storage (bit, B, KB, MB, GB, TB), and angle (deg, rad, grad). Incompatible units (e.g., km to kg) return an error identifying the quantity mismatch.',
+    'Convert a numeric value between compatible units of measure. Supports: length (mm, cm, m, km, in, ft, yd, mi), mass (mcg, mg, g, kg, oz, lb, mt, t), volume (ml, cl, dl, l, kl, tsp, Tbs, fl-oz, cup, pnt, qt, gal, m3), temperature (C, F, K, R — non-linear conversions handled), speed (m/s, km/h, knot, ft/s), pressure (Pa, kPa, MPa, hPa, bar, torr, psi), energy (J, kJ, Wh, kWh, MWh), power (W, mW, kW, MW, GW), frequency (Hz, kHz, MHz, GHz), digital storage (b, Kb, Mb, Gb, Tb, B, KB, MB, GB, TB), and angle (deg, rad, grad). Incompatible units (e.g., km to kg) return an error identifying the quantity mismatch.',
   annotations: { readOnlyHint: true, openWorldHint: false },
 
   input: z.object({
@@ -41,13 +42,44 @@ export const refUnitConvert = tool('ref_unit_convert', {
     {
       reason: 'unknown_unit',
       code: JsonRpcErrorCode.InvalidParams,
-      when: 'One or both units are not recognized.',
-      recovery: 'Use standard unit abbreviations such as km, kg, °C, mph, or kWh. Check for typos.',
+      when: 'One or both units are not recognized by the underlying library.',
+      recovery:
+        'Use standard unit abbreviations: km, kg, C, F, K, R, mph, kWh, Pa, kPa, J. Check for typos or degree symbols (use "C" not "°C").',
+    },
+    {
+      reason: 'below_absolute_zero',
+      code: JsonRpcErrorCode.InvalidParams,
+      when: 'The input temperature is below absolute zero (0 K = -273.15 °C = -459.67 °F).',
+      recovery:
+        'Provide a temperature at or above absolute zero. Absolute zero is 0 K, -273.15 C, or -459.67 F.',
     },
   ],
 
   handler(input, ctx) {
-    return getUnitsService().convert(input.value, input.from, input.to, ctx);
+    const outcome = getUnitsService().convert(input.value, input.from, input.to, ctx);
+    if ('error' in outcome) {
+      const err = outcome as ConversionError;
+      if (err.error === 'unknown_unit') {
+        throw ctx.fail(
+          'unknown_unit',
+          `Unrecognized unit "${err.unit}". Use plain abbreviations: "C" (Celsius), "F" (Fahrenheit), "K" (Kelvin), "R" (Rankine), "km", "kg", "kWh", "Pa". Avoid degree symbols.`,
+        );
+      }
+      if (err.error === 'incompatible_units') {
+        throw ctx.fail(
+          'incompatible_units',
+          `Cannot convert "${err.from}" (${err.from_measure}) to "${err.to}" (${err.to_measure}) — different physical quantities. Ensure both units measure the same quantity.`,
+        );
+      }
+      if (err.error === 'below_absolute_zero') {
+        throw ctx.fail(
+          'below_absolute_zero',
+          `Temperature ${err.value} ${err.from} is below absolute zero (≈ ${err.kelvin_equivalent.toFixed(2)} K). Absolute zero is 0 K / -273.15 °C / -459.67 °F.`,
+        );
+      }
+      throw new Error(`Unexpected conversion error`);
+    }
+    return outcome;
   },
 
   format: (result) => {

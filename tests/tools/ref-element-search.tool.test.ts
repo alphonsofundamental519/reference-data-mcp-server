@@ -62,7 +62,7 @@ describe('refElementSearch', () => {
   });
 
   it('throws when no filter provided', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refElementSearch.errors });
     const input = refElementSearch.input.parse({});
     expect(() => refElementSearch.handler(input, ctx)).toThrow(/At least one filter/);
   });

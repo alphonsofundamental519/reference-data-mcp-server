@@ -82,12 +82,6 @@ export const refGeoSearch = tool('ref_geo_search', {
       recovery:
         'Provide at least one of keyword, region, language, subregion, or currency to filter by.',
     },
-    {
-      reason: 'no_match',
-      code: JsonRpcErrorCode.NotFound,
-      when: 'No countries matched the provided filters.',
-      recovery: 'Broaden or remove a filter. Try a wider region or remove the language filter.',
-    },
   ],
 
   handler(input, ctx) {
@@ -99,6 +93,20 @@ export const refGeoSearch = tool('ref_geo_search', {
     if (input.subregion?.trim()) searchOpts.subregion = input.subregion;
     if (input.language?.trim()) searchOpts.language = input.language;
     if (input.currency?.trim()) searchOpts.currency = input.currency;
+
+    const hasFilter =
+      searchOpts.keyword ||
+      searchOpts.region ||
+      searchOpts.subregion ||
+      searchOpts.language ||
+      searchOpts.currency;
+    if (!hasFilter) {
+      throw ctx.fail(
+        'no_filters',
+        'At least one search filter is required. Provide keyword, region, subregion, language, or currency.',
+      );
+    }
+
     const { results, total_matches } = getGeoService().search(searchOpts, ctx);
 
     const truncated = total_matches > results.length;

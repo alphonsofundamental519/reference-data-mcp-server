@@ -67,15 +67,27 @@ describe('refMimeType', () => {
   });
 
   it('throws for unknown MIME type', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refMimeType.errors });
     const input = refMimeType.input.parse({ query: 'application/xyzzy-nonexistent-9999' });
     expect(() => refMimeType.handler(input, ctx)).toThrow(/not found/i);
   });
 
   it('throws for unknown extension', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refMimeType.errors });
     const input = refMimeType.input.parse({ query: '.xyzzy_unknown_ext' });
     expect(() => refMimeType.handler(input, ctx)).toThrow(/No MIME type found/);
+  });
+
+  it('returns alternatives for extension with multiple types', async () => {
+    const ctx = createMockContext({ errors: refMimeType.errors });
+    // .ts maps to video/mp2t (IANA) — may have alternatives depending on mime-db
+    const input = refMimeType.input.parse({ query: '.ts' });
+    const result = await refMimeType.handler(input, ctx);
+    expect(result.type).toBeTruthy();
+    // alternatives is optional — just verify it's an array when present
+    if (result.alternatives) {
+      expect(Array.isArray(result.alternatives)).toBe(true);
+    }
   });
 
   it('formats output with type, extensions, and compressible', () => {

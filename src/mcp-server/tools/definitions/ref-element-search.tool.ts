@@ -27,7 +27,7 @@ const RangeSchema = z.object({
 export const refElementSearch = tool('ref_element_search', {
   title: 'Element Search',
   description:
-    'Filter periodic table elements by category, group, period, or property range. At least one filter is required. Returns matching elements as a summary list. Use ref_element_lookup for the full record on a specific element. Valid categories: alkali metal, alkaline earth metal, transition metal, post-transition metal, metalloid, reactive nonmetal, noble gas, lanthanide, actinide.',
+    'Filter periodic table elements by category, group, period, atomic number range, or atomic mass range. At least one filter is required. Returns matching elements as a summary list. Use ref_element_lookup for the full record on a specific element. Valid categories: alkali metal, alkaline earth metal, transition metal, post-transition metal, metalloid, reactive nonmetal, noble gas, lanthanide, actinide.',
   annotations: { readOnlyHint: true, openWorldHint: false },
 
   input: z.object({
@@ -74,12 +74,6 @@ export const refElementSearch = tool('ref_element_search', {
       recovery:
         'Provide at least one filter: category, group, period, atomic_number_range, or atomic_mass_range.',
     },
-    {
-      reason: 'no_match',
-      code: JsonRpcErrorCode.NotFound,
-      when: 'No elements matched the provided filters.',
-      recovery: 'Broaden or remove a filter. Try a wider category or larger atomic number range.',
-    },
   ],
 
   handler(input, ctx) {
@@ -99,6 +93,20 @@ export const refElementSearch = tool('ref_element_search', {
         max: input.atomic_mass_range.max,
       };
     }
+
+    const hasFilter =
+      searchOpts.category ||
+      searchOpts.group != null ||
+      searchOpts.period != null ||
+      searchOpts.atomic_number_range ||
+      searchOpts.atomic_mass_range;
+    if (!hasFilter) {
+      throw ctx.fail(
+        'no_filters',
+        'At least one filter is required. Provide category, group, period, atomic_number_range, or atomic_mass_range.',
+      );
+    }
+
     const { results, total_matches } = getElementsService().search(searchOpts, ctx);
 
     if (total_matches === 0) {

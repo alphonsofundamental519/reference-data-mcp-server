@@ -81,7 +81,23 @@ export const refGeoLookup = tool('ref_geo_lookup', {
   ],
 
   handler(input, ctx) {
-    const record = getGeoService().lookup(input.query, input.by, ctx);
+    if (!input.query.trim()) {
+      throw ctx.fail('no_match', 'Empty query. Provide a country name, alpha-2, or alpha-3 code.');
+    }
+    const result = getGeoService().lookup(input.query, input.by, ctx);
+    if (result === 'numeric_unsupported') {
+      throw ctx.fail(
+        'no_match',
+        'Numeric country code lookup is not supported. Use alpha2 or alpha3 codes, or try the country name.',
+      );
+    }
+    if (!result) {
+      throw ctx.fail(
+        'no_match',
+        `No country matched "${input.query}". Try a different spelling or use ref_geo_search with a keyword.`,
+      );
+    }
+    const record = result;
     return {
       alpha2: record.alpha2,
       alpha3: record.alpha3,

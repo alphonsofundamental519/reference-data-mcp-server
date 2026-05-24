@@ -65,7 +65,21 @@ export const refHttpStatus = tool('ref_http_status', {
   ],
 
   handler(input, ctx) {
-    return getHttpStatusService().lookup(input.query, ctx);
+    if (!input.query.trim()) {
+      throw ctx.fail(
+        'no_match',
+        'Empty query. Provide a numeric code (e.g., "404") or a keyword (e.g., "not found").',
+      );
+    }
+    const result = getHttpStatusService().lookup(input.query, ctx);
+    if (!result) {
+      const numQuery = parseInt(input.query, 10);
+      const msg = !Number.isNaN(numQuery)
+        ? `HTTP status code ${numQuery} is not a registered IANA code. Use the numeric code directly or search with a keyword.`
+        : `No HTTP status code matched "${input.query}". Try the numeric code directly, or keywords like "not found", "unauthorized", "too many requests".`;
+      throw ctx.fail('no_match', msg);
+    }
+    return result;
   },
 
   format: (result) => {

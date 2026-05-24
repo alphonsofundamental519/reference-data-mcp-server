@@ -4,7 +4,6 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { invalidParams, notFound } from '@cyanheads/mcp-ts-core/errors';
 import { DATASET_VERSION, elements } from '../../data/periodic-table.js';
 import type { ElementRecord, ElementSummary } from './types.js';
 
@@ -33,7 +32,7 @@ export class ElementsService {
     query: string | number,
     by: 'auto' | 'name' | 'symbol' | 'number',
     ctx: Context,
-  ): ElementRecord {
+  ): ElementRecord | undefined {
     ctx.log.debug('Element lookup', { query, by });
 
     let result: ElementRecord | undefined;
@@ -63,13 +62,7 @@ export class ElementsService {
       }
     }
 
-    if (!result) {
-      throw notFound(
-        `No element matched "${query}". Use ref_element_search to browse by category, or try the full IUPAC element name or symbol.`,
-        { query, by },
-      );
-    }
-    return result;
+    return result ?? undefined;
   }
 
   search(
@@ -91,9 +84,7 @@ export class ElementsService {
       !atomic_number_range &&
       !atomic_mass_range
     ) {
-      throw invalidParams(
-        'At least one filter is required. Provide category, group, period, atomic_number_range, or atomic_mass_range.',
-      );
+      return { results: [], total_matches: 0 };
     }
 
     ctx.log.debug('Element search', opts);

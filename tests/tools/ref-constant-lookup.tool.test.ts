@@ -51,9 +51,34 @@ describe('refConstantLookup', () => {
   });
 
   it('throws for unrecognized query', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refConstantLookup.errors });
     const input = refConstantLookup.input.parse({ query: 'xyzzy_nonexistent_constant_12345' });
     expect(() => refConstantLookup.handler(input, ctx)).toThrow(/No physical constant matched/);
+  });
+
+  it('resolves capital G to gravitational constant (not standard gravity)', async () => {
+    const ctx = createMockContext({ errors: refConstantLookup.errors });
+    const input = refConstantLookup.input.parse({ query: 'G' });
+    const result = await refConstantLookup.handler(input, ctx);
+    expect(result.name).toBe('gravitational constant');
+    expect(result.symbol).toBe('G');
+    expect(result.value).toBeCloseTo(6.674e-11, 5);
+  });
+
+  it('resolves lowercase g to standard gravity (not gravitational constant)', async () => {
+    const ctx = createMockContext({ errors: refConstantLookup.errors });
+    const input = refConstantLookup.input.parse({ query: 'g' });
+    const result = await refConstantLookup.handler(input, ctx);
+    expect(result.name).toBe('standard acceleration of gravity');
+    expect(result.value).toBeCloseTo(9.80665, 4);
+  });
+
+  it('returns related constants for direct name lookup', async () => {
+    const ctx = createMockContext({ errors: refConstantLookup.errors });
+    const input = refConstantLookup.input.parse({ query: 'speed of light' });
+    const result = await refConstantLookup.handler(input, ctx);
+    expect(result.related).toBeInstanceOf(Array);
+    expect(result.related.length).toBeGreaterThan(0);
   });
 
   it('returns related constants for fuzzy match', async () => {

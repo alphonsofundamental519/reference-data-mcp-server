@@ -64,9 +64,32 @@ describe('refGeoSearch', () => {
   });
 
   it('throws when no filter provided', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refGeoSearch.errors });
     const input = refGeoSearch.input.parse({});
     expect(() => refGeoSearch.handler(input, ctx)).toThrow(/at least one/i);
+  });
+
+  it('language filter uses exact code match — "es" does not match Portuguese', async () => {
+    const ctx = createMockContext({ errors: refGeoSearch.errors });
+    const input = refGeoSearch.input.parse({ language: 'es' });
+    const result = await refGeoSearch.handler(input, ctx);
+    const names = result.results.map((c) => c.name);
+    // Portuguese-speaking countries should NOT appear in Spanish results
+    expect(names).not.toContain('Brazil');
+    expect(names).not.toContain('Portugal');
+  });
+
+  it('subregion filter uses exact match — "Eastern Asia" does not match South-Eastern Asia', async () => {
+    const ctx = createMockContext({ errors: refGeoSearch.errors });
+    const input = refGeoSearch.input.parse({ subregion: 'Eastern Asia', limit: 100 });
+    const result = await refGeoSearch.handler(input, ctx);
+    // All results should be exactly Eastern Asia, not South-Eastern Asia
+    const names = result.results.map((c) => c.name);
+    // Vietnam, Indonesia, Thailand are South-Eastern Asia — should NOT appear
+    expect(names).not.toContain('Vietnam');
+    expect(names).not.toContain('Indonesia');
+    // China and Japan are Eastern Asia — should appear
+    expect(names.some((n) => n === 'China' || n === 'Japan')).toBe(true);
   });
 
   it('returns message hint with no results', async () => {

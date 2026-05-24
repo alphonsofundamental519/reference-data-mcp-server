@@ -4,7 +4,6 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { invalidParams, notFound } from '@cyanheads/mcp-ts-core/errors';
 import { countries, getCountryData, getEmojiFlag, languages } from 'countries-list';
 import { getTimezoneService } from '../timezone/timezone-service.js';
 import type { CountryRecord, CountrySummary, Currency } from './types.js';
@@ -412,19 +411,18 @@ export class GeoService {
     query: string,
     by: 'auto' | 'name' | 'alpha2' | 'alpha3' | 'numeric',
     ctx: Context,
-  ): CountryRecord {
+  ): CountryRecord | 'numeric_unsupported' | undefined {
     ctx.log.debug('Geo lookup', { query, by });
+
+    if (by === 'numeric') {
+      return 'numeric_unsupported';
+    }
 
     let result: CountryRecord | undefined;
     if (by === 'alpha2') {
       result = this.lookupByAlpha2(query);
     } else if (by === 'alpha3') {
       result = this.lookupByAlpha3(query);
-    } else if (by === 'numeric') {
-      // countries-list doesn't have numeric codes; we do a best-effort pass
-      throw invalidParams(
-        `Numeric country code lookup is not supported. Use alpha2 or alpha3 codes, or try the country name.`,
-      );
     } else if (by === 'name') {
       result = this.lookupByName(query);
     } else {
@@ -434,12 +432,6 @@ export class GeoService {
       if (!result) result = this.lookupByName(query);
     }
 
-    if (!result) {
-      throw notFound(
-        `No country matched "${query}". Try a different spelling, or use ref_geo_search with a keyword.`,
-        { query, by },
-      );
-    }
     return result;
   }
 
@@ -457,9 +449,7 @@ export class GeoService {
     const { keyword, region, subregion, language, currency, limit = 20 } = opts;
 
     if (!keyword && !region && !subregion && !language && !currency) {
-      throw invalidParams(
-        'At least one search filter is required. Provide keyword, region, subregion, language, or currency.',
-      );
+      return { results: [], total_matches: 0 };
     }
 
     ctx.log.debug('Geo search', opts);
@@ -479,10 +469,10 @@ export class GeoService {
         if (!inName && !inNative && !inCapital && !inSubregion) return false;
       }
       if (regionLower && !c.region.toLowerCase().includes(regionLower)) return false;
-      if (subregionLower && !c.subregion?.toLowerCase().includes(subregionLower)) return false;
+      if (subregionLower && c.subregion?.toLowerCase() !== subregionLower) return false;
       if (langQuery) {
         const hasLang = c.languages.some(
-          (l) => l.code.toLowerCase() === langQuery || l.name.toLowerCase().includes(langQuery),
+          (l) => l.code.toLowerCase() === langQuery || l.name.toLowerCase() === langQuery,
         );
         if (!hasLang) return false;
       }
@@ -496,15 +486,23 @@ export class GeoService {
     });
 
     const total_matches = matched.length;
-    const results = matched.slice(0, Math.min(limit, 100)).map((c) => ({
-      alpha2: c.alpha2,
-      alpha3: c.alpha3,
-      name: c.name,
-      capital: c.capital,
-      region: c.region,
-      currency_code: c.currencies[0]?.code ?? null,
-      flag: c.flag,
-    }));
+    const results = matched.slice(0, Math.min(limit, 100)).map((c) => {
+      // When filtering by currency, show the matched currency code rather than always the primary.
+      let currency_code = c.currencies[0]?.code ?? null;
+      if (currQuery) {
+        const matched_currency = c.currencies.find((cur) => cur.code === currQuery);
+        if (matched_currency) currency_code = matched_currency.code;
+      }
+      return {
+        alpha2: c.alpha2,
+        alpha3: c.alpha3,
+        name: c.name,
+        capital: c.capital,
+        region: c.region,
+        currency_code,
+        flag: c.flag,
+      };
+    });
 
     return { results, total_matches };
   }

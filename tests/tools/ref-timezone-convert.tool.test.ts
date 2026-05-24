@@ -61,7 +61,7 @@ describe('refTimezoneConvert', () => {
   });
 
   it('throws for unrecognized from_tz', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refTimezoneConvert.errors });
     const input = refTimezoneConvert.input.parse({
       datetime: '2026-05-24T15:00:00',
       from_tz: 'Galaxy/FakeZone_9999',
@@ -71,7 +71,7 @@ describe('refTimezoneConvert', () => {
   });
 
   it('throws for unrecognized to_tz', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refTimezoneConvert.errors });
     const input = refTimezoneConvert.input.parse({
       datetime: '2026-05-24T15:00:00',
       from_tz: 'Asia/Tokyo',
@@ -81,13 +81,28 @@ describe('refTimezoneConvert', () => {
   });
 
   it('throws for datetime with offset suffix', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refTimezoneConvert.errors });
     const input = refTimezoneConvert.input.parse({
       datetime: '2026-05-24T15:00:00Z', // Z suffix not allowed
       from_tz: 'Asia/Tokyo',
       to_tz: 'America/New_York',
     });
     expect(() => refTimezoneConvert.handler(input, ctx)).toThrow(/Malformed datetime/);
+  });
+
+  it('correct DST offset for time after spring-forward', async () => {
+    const ctx = createMockContext({ errors: refTimezoneConvert.errors });
+    // 2026-03-08 is DST spring-forward in US Eastern: clocks jump from 02:00 to 03:00
+    // 03:30 on that day should be EDT (UTC-4), not EST (UTC-5)
+    const input = refTimezoneConvert.input.parse({
+      datetime: '2026-03-08T03:30:00',
+      from_tz: 'America/New_York',
+      to_tz: 'UTC',
+    });
+    const result = await refTimezoneConvert.handler(input, ctx);
+    // EDT is UTC-4, so 03:30 EDT = 07:30 UTC
+    expect(result.source.offset).toBe('-04:00');
+    expect(result.target.datetime).toContain('07:30:00');
   });
 
   it('formats output with source, target, and UTC equivalent', () => {

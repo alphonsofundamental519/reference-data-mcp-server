@@ -65,7 +65,19 @@ export const refConstantLookup = tool('ref_constant_lookup', {
   ],
 
   handler(input, ctx) {
+    if (!input.query.trim()) {
+      throw ctx.fail(
+        'no_match',
+        'Empty query. Provide a constant name, symbol, or alias (e.g., "speed of light", "G", "h").',
+      );
+    }
     const result = getConstantsService().lookup(input.query, ctx);
+    if (!result) {
+      throw ctx.fail(
+        'no_match',
+        `No physical constant matched "${input.query}". Try common names like "speed of light", "Planck constant", or "gravitational constant".`,
+      );
+    }
     return { ...result, dataset_version: DATASET_VERSION };
   },
 

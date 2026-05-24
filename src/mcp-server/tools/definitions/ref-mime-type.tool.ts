@@ -60,7 +60,21 @@ export const refMimeType = tool('ref_mime_type', {
   ],
 
   handler(input, ctx) {
-    return getMimeService().lookup(input.query, ctx);
+    if (!input.query.trim()) {
+      throw ctx.fail(
+        'no_match',
+        'Empty query. Provide a MIME type string (e.g., "image/webp") or file extension (e.g., ".webp").',
+      );
+    }
+    const result = getMimeService().lookup(input.query, ctx);
+    if (!result) {
+      const normalized = input.query.startsWith('.') ? input.query.slice(1) : input.query;
+      const msg = normalized.includes('/')
+        ? `MIME type "${input.query}" not found. Check spelling or use the full IANA type string (e.g., "application/json").`
+        : `No MIME type found for extension "${input.query}". Check spelling or use the full IANA type string (e.g., "image/jpeg"). Common extensions: js, ts, json, html, css, png, jpg, pdf.`;
+      throw ctx.fail('no_match', msg);
+    }
+    return result;
   },
 
   format: (result) => {

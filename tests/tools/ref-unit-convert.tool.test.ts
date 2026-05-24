@@ -65,21 +65,34 @@ describe('refUnitConvert', () => {
   });
 
   it('throws for unrecognized from unit', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refUnitConvert.errors });
     const input = refUnitConvert.input.parse({ value: 1, from: 'xyzzy_unit', to: 'km' });
     expect(() => refUnitConvert.handler(input, ctx)).toThrow(/Unrecognized unit/);
   });
 
   it('throws for unrecognized to unit', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refUnitConvert.errors });
     const input = refUnitConvert.input.parse({ value: 1, from: 'km', to: 'xyzzy_unit' });
     expect(() => refUnitConvert.handler(input, ctx)).toThrow(/Unrecognized unit/);
   });
 
   it('throws for mismatched measures', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refUnitConvert.errors });
     const input = refUnitConvert.input.parse({ value: 1, from: 'km', to: 'kg' });
-    expect(() => refUnitConvert.handler(input, ctx)).toThrow(/Cannot convert between/);
+    expect(() => refUnitConvert.handler(input, ctx)).toThrow(/Cannot convert/);
+  });
+
+  it('throws for temperature below absolute zero', async () => {
+    const ctx = createMockContext({ errors: refUnitConvert.errors });
+    const input = refUnitConvert.input.parse({ value: -600, from: 'F', to: 'K' });
+    expect(() => refUnitConvert.handler(input, ctx)).toThrow(/absolute zero/i);
+  });
+
+  it('accepts -273.15 C (absolute zero, exact boundary)', async () => {
+    const ctx = createMockContext({ errors: refUnitConvert.errors });
+    const input = refUnitConvert.input.parse({ value: -273.15, from: 'C', to: 'K' });
+    const result = await refUnitConvert.handler(input, ctx);
+    expect(result.result).toBeCloseTo(0, 1);
   });
 
   it('formats output with value, units, result, and measure', () => {

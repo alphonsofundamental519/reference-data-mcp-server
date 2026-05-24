@@ -92,7 +92,19 @@ export const refTimezoneLookup = tool('ref_timezone_lookup', {
       atDate = parsed;
     }
 
+    if (!input.query.trim()) {
+      throw ctx.fail(
+        'no_match',
+        'Empty query. Provide an IANA timezone ID, country code, or city name.',
+      );
+    }
     const timezones = getTimezoneService().lookup(input.query, input.by, atDate, ctx);
+    if (!timezones) {
+      throw ctx.fail(
+        'no_match',
+        `No timezone matched "${input.query}". Use an exact IANA timezone ID (e.g., "America/New_York"), a two-letter ISO country code (e.g., "US"), or a major city name.`,
+      );
+    }
     return {
       timezones,
       evaluated_at: (atDate ?? new Date()).toISOString(),

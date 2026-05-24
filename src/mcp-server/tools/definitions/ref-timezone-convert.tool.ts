@@ -67,6 +67,29 @@ export const refTimezoneConvert = tool('ref_timezone_convert', {
   ],
 
   handler(input, ctx) {
+    // Validate datetime format before delegating — ensures ctx.fail populates data.reason
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(input.datetime)) {
+      throw ctx.fail(
+        'invalid_datetime',
+        `Malformed datetime "${input.datetime}". Use ISO 8601 without timezone offset, e.g., "2026-05-24T15:30:00".`,
+      );
+    }
+    // Validate timezone IDs before delegating
+    const svc = getTimezoneService();
+    const resolvedFrom = svc.resolveIanaIdPublic(input.from_tz) ?? input.from_tz;
+    const resolvedTo = svc.resolveIanaIdPublic(input.to_tz) ?? input.to_tz;
+    if (!svc.isValidIanaPublic(resolvedFrom)) {
+      throw ctx.fail(
+        'invalid_timezone',
+        `Unrecognized source timezone "${input.from_tz}". Use ref_timezone_lookup to find the correct IANA ID.`,
+      );
+    }
+    if (!svc.isValidIanaPublic(resolvedTo)) {
+      throw ctx.fail(
+        'invalid_timezone',
+        `Unrecognized target timezone "${input.to_tz}". Use ref_timezone_lookup to find the correct IANA ID.`,
+      );
+    }
     return getTimezoneService().convert(input.datetime, input.from_tz, input.to_tz, ctx);
   },
 

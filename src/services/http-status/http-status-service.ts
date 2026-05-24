@@ -4,7 +4,6 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { notFound } from '@cyanheads/mcp-ts-core/errors';
 import type { HttpStatusCode } from '../../data/http-status-codes.js';
 import { DATASET_VERSION, httpStatusCodes } from '../../data/http-status-codes.js';
 
@@ -34,20 +33,14 @@ export class HttpStatusService {
     }
   }
 
-  lookup(query: string | number, ctx: Context): HttpStatusResult {
+  lookup(query: string | number, ctx: Context): HttpStatusResult | undefined {
     ctx.log.debug('HTTP status lookup', { query });
 
     const numQuery = typeof query === 'number' ? query : parseInt(String(query), 10);
 
     if (!Number.isNaN(numQuery)) {
       const status = this.byCode.get(numQuery);
-      if (!status) {
-        throw notFound(
-          `HTTP status code ${numQuery} is not a registered IANA code. Use the numeric code directly or search with a keyword.`,
-          { code: numQuery },
-        );
-      }
-      return { ...status };
+      return status ? { ...status } : undefined;
     }
 
     // Keyword search
@@ -59,12 +52,7 @@ export class HttpStatusService {
         s.category.toLowerCase().includes(queryLower),
     );
 
-    if (matches.length === 0) {
-      throw notFound(
-        `No HTTP status code matched "${query}". Try the numeric code directly, or keywords like "not found", "unauthorized", "too many requests".`,
-        { query },
-      );
-    }
+    if (matches.length === 0) return;
 
     const primary = matches[0] as (typeof matches)[number];
     const altMatches = matches.slice(1).map((s) => ({

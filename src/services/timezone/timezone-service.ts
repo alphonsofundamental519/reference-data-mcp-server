@@ -5,7 +5,7 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { invalidParams, notFound } from '@cyanheads/mcp-ts-core/errors';
+import { invalidParams } from '@cyanheads/mcp-ts-core/errors';
 import { getTimeZones } from '@vvo/tzdb';
 import type { ConversionResult, TimezoneRecord } from './types.js';
 
@@ -129,6 +129,26 @@ export class TimezoneService {
     this.allIanaIds = Intl.supportedValuesOf('timeZone');
   }
 
+  /** Check whether an IANA ID is valid by attempting to use it with Intl */
+  private isValidIana(ianaId: string): boolean {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: ianaId });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Public wrapper for resolveIanaId — used by tool handlers for pre-validation */
+  resolveIanaIdPublic(query: string): string | null {
+    return this.resolveIanaId(query);
+  }
+
+  /** Public wrapper for isValidIana — used by tool handlers for pre-validation */
+  isValidIanaPublic(ianaId: string): boolean {
+    return this.isValidIana(ianaId);
+  }
+
   /** Get timezones for a country code (alpha2) */
   getTimezonesByCountry(countryCode: string): string[] {
     return this.byCountry.get(countryCode.toUpperCase()) ?? [];
@@ -136,6 +156,16 @@ export class TimezoneService {
 
   /** Resolve a query to an IANA timezone ID, or throw */
   private resolveIanaId(query: string): string | null {
+    // Handle UTC and GMT aliases — valid IANA identifiers not in tzdb or Intl.supportedValuesOf
+    const utcAliases: Record<string, string> = {
+      utc: 'UTC',
+      gmt: 'UTC',
+      'etc/utc': 'UTC',
+      'etc/gmt': 'UTC',
+    };
+    const utcAlias = utcAliases[query.toLowerCase()];
+    if (utcAlias) return utcAlias;
+
     // Exact IANA match (case-insensitive)
     const queryLower = query.toLowerCase();
     const exactMatch = this.allIanaIds.find((id) => id.toLowerCase() === queryLower);
@@ -204,7 +234,7 @@ export class TimezoneService {
     by: 'iana' | 'country' | 'auto',
     at: Date | undefined,
     ctx: Context,
-  ): TimezoneRecord[] {
+  ): TimezoneRecord[] | undefined {
     ctx.log.debug('Timezone lookup', { query, by });
 
     if (by === 'country' || (by === 'auto' && query.length === 2 && /^[A-Za-z]{2}$/.test(query))) {
@@ -212,10 +242,7 @@ export class TimezoneService {
       if (tzIds.length === 0) {
         // If auto and nothing found by country, fall through to IANA
         if (by === 'country') {
-          throw notFound(
-            `No timezone data found for country code "${query}". Use a valid ISO alpha-2 country code.`,
-            { query },
-          );
+          return;
         }
       } else {
         return tzIds.map((id) => this.buildRecord(id, at));
@@ -225,10 +252,7 @@ export class TimezoneService {
     // IANA / partial name lookup
     const ianaId = this.resolveIanaId(query);
     if (!ianaId) {
-      throw notFound(
-        `No timezone matched "${query}". Use an exact IANA ID (e.g., "America/New_York"), a two-letter country code, or a major city name.`,
-        { query, by },
-      );
+      return;
     }
     return [this.buildRecord(ianaId, at)];
   }
@@ -241,17 +265,13 @@ export class TimezoneService {
     const resolvedTo = this.resolveIanaId(toTz) ?? toTz;
 
     // Validate timezones
-    try {
-      new Intl.DateTimeFormat('en-US', { timeZone: resolvedFrom });
-    } catch {
+    if (!this.isValidIana(resolvedFrom)) {
       throw invalidParams(
         `Unrecognized source timezone "${fromTz}". Use ref_timezone_lookup to find the correct IANA ID.`,
         { fromTz },
       );
     }
-    try {
-      new Intl.DateTimeFormat('en-US', { timeZone: resolvedTo });
-    } catch {
+    if (!this.isValidIana(resolvedTo)) {
       throw invalidParams(
         `Unrecognized target timezone "${toTz}". Use ref_timezone_lookup to find the correct IANA ID.`,
         { toTz },
@@ -270,11 +290,15 @@ export class TimezoneService {
 
     const [, year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0] = match.map(Number);
 
-    // Build the UTC timestamp by interpreting the local datetime in the source timezone
-    // Strategy: use Intl to find the offset at the target moment iteratively
+    // Build the UTC timestamp by interpreting the local datetime in the source timezone.
+    // Two-step approach: initial estimate, then refine with the offset at the refined UTC time.
+    // This handles DST transitions (spring-forward) where the naive first-pass offset is wrong.
     const approxUtcMs = Date.UTC(year, month - 1, day, hour, minute, second);
     const approxDate = new Date(approxUtcMs);
-    const fromOffsetMin = getIntlOffsetMinutes(resolvedFrom, approxDate);
+    const firstOffsetMin = getIntlOffsetMinutes(resolvedFrom, approxDate);
+    const refinedUtcMs = approxUtcMs - firstOffsetMin * 60000;
+    const refinedDate = new Date(refinedUtcMs);
+    const fromOffsetMin = getIntlOffsetMinutes(resolvedFrom, refinedDate);
     const utcMs = approxUtcMs - fromOffsetMin * 60000;
     const utcDate = new Date(utcMs);
 

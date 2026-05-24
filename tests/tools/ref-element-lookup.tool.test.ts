@@ -66,7 +66,7 @@ describe('refElementLookup', () => {
   });
 
   it('throws for unrecognized query', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refElementLookup.errors });
     const input = refElementLookup.input.parse({ query: 'notanelement12345' });
     expect(() => refElementLookup.handler(input, ctx)).toThrow(/No element matched/);
   });

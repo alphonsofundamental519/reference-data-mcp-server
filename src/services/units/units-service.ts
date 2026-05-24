@@ -4,7 +4,6 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { invalidParams } from '@cyanheads/mcp-ts-core/errors';
 import convert from 'convert-units';
 
 export interface ConversionResult {
@@ -38,8 +37,24 @@ function getMeasureForUnit(unitStr: string): string | null {
   return null;
 }
 
+export type ConversionError =
+  | { error: 'unknown_unit'; unit: string; which: 'from' | 'to' }
+  | {
+      error: 'incompatible_units';
+      from: string;
+      to: string;
+      from_measure: string;
+      to_measure: string;
+    }
+  | { error: 'below_absolute_zero'; from: string; value: number; kelvin_equivalent: number };
+
 export class UnitsService {
-  convert(value: number, from: string, to: string, ctx: Context): ConversionResult {
+  convert(
+    value: number,
+    from: string,
+    to: string,
+    ctx: Context,
+  ): ConversionResult | ConversionError {
     ctx.log.debug('Unit convert', { value, from, to });
 
     // Validate both units exist
@@ -47,26 +62,36 @@ export class UnitsService {
     const toMeasure = getMeasureForUnit(to);
 
     if (!fromMeasure) {
-      const allUnits = convert().possibilities();
-      throw invalidParams(
-        `Unrecognized unit "${from}". Check supported units or use a standard abbreviation (e.g., "km", "kg", "°C").`,
-        { from, sample_units: allUnits.slice(0, 20) },
-      );
+      return { error: 'unknown_unit', unit: from, which: 'from' };
     }
 
     if (!toMeasure) {
-      const allUnits = convert().possibilities();
-      throw invalidParams(
-        `Unrecognized unit "${to}". Check supported units or use a standard abbreviation (e.g., "mi", "lb", "°F").`,
-        { to, sample_units: allUnits.slice(0, 20) },
-      );
+      return { error: 'unknown_unit', unit: to, which: 'to' };
     }
 
     if (fromMeasure !== toMeasure) {
-      throw invalidParams(
-        `Cannot convert between "${from}" (${fromMeasure}) and "${to}" (${toMeasure}) — they measure different quantities. Ensure both units measure the same physical quantity.`,
-        { from, to, from_measure: fromMeasure, to_measure: toMeasure },
-      );
+      return {
+        error: 'incompatible_units',
+        from,
+        to,
+        from_measure: fromMeasure,
+        to_measure: toMeasure,
+      };
+    }
+
+    // Physical validation: reject temperatures below absolute zero
+    if (fromMeasure === 'temperature') {
+      let kelvin_equivalent: number;
+      try {
+        kelvin_equivalent = convert(value)
+          .from(from as never)
+          .to('K' as never);
+      } catch {
+        kelvin_equivalent = NaN;
+      }
+      if (!Number.isNaN(kelvin_equivalent) && kelvin_equivalent < 0) {
+        return { error: 'below_absolute_zero', from, value, kelvin_equivalent };
+      }
     }
 
     let result: number;
@@ -75,9 +100,8 @@ export class UnitsService {
         .from(from as never)
         .to(to as never);
     } catch (err) {
-      throw invalidParams(
+      throw new Error(
         `Unit conversion from "${from}" to "${to}" failed: ${err instanceof Error ? err.message : String(err)}. Ensure both units measure the same quantity.`,
-        { from, to, value },
       );
     }
 

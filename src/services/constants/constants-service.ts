@@ -4,7 +4,6 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { notFound } from '@cyanheads/mcp-ts-core/errors';
 import type { PhysicalConstant } from '../../data/physical-constants.js';
 import { constants, DATASET_VERSION } from '../../data/physical-constants.js';
 
@@ -29,9 +28,13 @@ export class ConstantsService {
   // Map from alias/name → constant index
   private readonly aliasIndex: Map<string, number>;
 
+  // Case-sensitive index for symbols — uppercase G vs lowercase g must resolve differently
+  private readonly caseSensitiveIndex: Map<string, number>;
+
   constructor() {
     this.all = constants;
     this.aliasIndex = new Map();
+    this.caseSensitiveIndex = new Map();
 
     for (let i = 0; i < constants.length; i++) {
       const c = constants[i] as (typeof constants)[number];
@@ -40,18 +43,32 @@ export class ConstantsService {
       for (const alias of c.aliases) {
         this.aliasIndex.set(alias.toLowerCase(), i);
       }
+      // Also store original-case entries for symbols/aliases where case matters
+      this.caseSensitiveIndex.set(c.symbol, i);
+      for (const alias of c.aliases) {
+        // Only store if case differs from lowercase to avoid masking the general index
+        if (alias !== alias.toLowerCase()) {
+          this.caseSensitiveIndex.set(alias, i);
+        }
+      }
     }
   }
 
-  lookup(query: string, ctx: Context): ConstantResult {
+  lookup(query: string, ctx: Context): ConstantResult | undefined {
     ctx.log.debug('Constant lookup', { query });
+
+    // Case-sensitive symbol match first (handles G vs g, F vs f, etc.)
+    const caseExactIdx = this.caseSensitiveIndex.get(query);
+    if (caseExactIdx != null) {
+      return this.buildResult(caseExactIdx, this.findRelated(caseExactIdx));
+    }
 
     const queryLower = query.toLowerCase();
 
-    // Exact match first
+    // Exact case-insensitive match
     const exactIdx = this.aliasIndex.get(queryLower);
     if (exactIdx != null) {
-      return this.buildResult(exactIdx, []);
+      return this.buildResult(exactIdx, this.findRelated(exactIdx));
     }
 
     // Partial/fuzzy match — find all candidates by scanning names and aliases
@@ -67,10 +84,7 @@ export class ConstantsService {
     }
 
     if (candidates.length === 0) {
-      throw notFound(
-        `No physical constant matched "${query}". Try common names like "speed of light", "Planck constant", or "Avogadro's number".`,
-        { query },
-      );
+      return;
     }
 
     // Sort by score descending
@@ -78,6 +92,27 @@ export class ConstantsService {
     const primary = (candidates[0] as { idx: number; score: number }).idx;
     const relatedIdxs = candidates.slice(1, 4).map((c) => c.idx);
     return this.buildResult(primary, relatedIdxs);
+  }
+
+  /** Find up to 3 related constants for a given primary index by scanning for name/term overlap. */
+  private findRelated(primaryIdx: number): number[] {
+    const primary = this.all[primaryIdx] as (typeof this.all)[number];
+    const primaryTerms = new Set([primary.name.toLowerCase(), primary.symbol.toLowerCase()]);
+
+    const related: Array<{ idx: number; score: number }> = [];
+    for (let i = 0; i < this.all.length; i++) {
+      if (i === primaryIdx) continue;
+      const c = this.all[i] as (typeof this.all)[number];
+      const allTerms = [c.name, c.symbol, ...c.aliases].map((n) => n.toLowerCase());
+      // Score by overlap: how many terms from primary appear in this entry's terms
+      let score = 0;
+      for (const term of primaryTerms) {
+        if (allTerms.some((t) => t.includes(term) || term.includes(t))) score++;
+      }
+      if (score > 0) related.push({ idx: i, score });
+    }
+    related.sort((a, b) => b.score - a.score);
+    return related.slice(0, 3).map((r) => r.idx);
   }
 
   private buildResult(idx: number, relatedIdxs: number[]): ConstantResult {

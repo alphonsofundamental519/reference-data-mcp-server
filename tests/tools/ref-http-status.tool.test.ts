@@ -66,13 +66,13 @@ describe('refHttpStatus', () => {
   });
 
   it('throws for unrecognized numeric code', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refHttpStatus.errors });
     const input = refHttpStatus.input.parse({ query: '999' });
     expect(() => refHttpStatus.handler(input, ctx)).toThrow(/not a registered IANA code|999/);
   });
 
   it('throws for unrecognized keyword', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refHttpStatus.errors });
     const input = refHttpStatus.input.parse({ query: 'xyzzy_no_match_keyword' });
     expect(() => refHttpStatus.handler(input, ctx)).toThrow(/No HTTP status code matched/);
   });

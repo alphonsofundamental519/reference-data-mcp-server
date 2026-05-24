@@ -55,7 +55,7 @@ describe('refGeoLookup', () => {
   });
 
   it('throws for unrecognized query', async () => {
-    const ctx = createMockContext();
+    const ctx = createMockContext({ errors: refGeoLookup.errors });
     const input = refGeoLookup.input.parse({ query: 'XYZZY_NO_COUNTRY' });
     expect(() => refGeoLookup.handler(input, ctx)).toThrow();
   });
