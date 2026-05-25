@@ -17,8 +17,9 @@ RUN bun install --frozen-lockfile
 # Copy the rest of the source code
 COPY . .
 
-# Build the application (npm run build uses node/tsx, which is required for the build scripts)
-RUN npm run build
+# Build the application using tsx directly — bun run build fails in this container because
+# tsx scripts call execFile('tsc'/'tsc-alias') which require a working Node.js process, not bun.
+RUN node_modules/.bin/tsx scripts/build.ts
 
 
 # ==============================================================================
