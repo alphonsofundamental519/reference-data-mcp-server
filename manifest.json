@@ -3,7 +3,7 @@
   "name": "reference-data-mcp-server",
   "version": "0.1.3",
   "description": "Look up countries, timezones, periodic table elements, physical constants, units, HTTP status codes, and MIME types via MCP. STDIO or Streamable HTTP.",
-  "author": { "name": "Casey Hand" },
+  "author": { "name": "cyanheads" },
   "server": {
     "type": "node",
     "entry_point": "dist/index.js",
