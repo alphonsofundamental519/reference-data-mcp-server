@@ -2,6 +2,10 @@
 
 All notable changes to this project. Each entry links to its full per-version file in [changelog/](changelog/).
 
+## [0.1.3](changelog/0.1.x/0.1.3.md) — 2026-05-24
+
+Field-test fixes: 7 bugs resolved across tool definitions, service internals, and resource routing; 12 files simplified; 15 regression tests added
+
 ## [0.1.2](changelog/0.1.x/0.1.2.md) — 2026-05-24
 
 Scope npm package to @cyanheads/reference-data-mcp-server; fix bundle script and author field

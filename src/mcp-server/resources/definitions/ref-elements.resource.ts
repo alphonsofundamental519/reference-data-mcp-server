@@ -23,8 +23,17 @@ export const refElementsResource = resource('ref://elements/{number}', {
     number: z.number().int().describe('Atomic number.'),
     symbol: z.string().describe('Chemical symbol.'),
     name: z.string().describe('IUPAC element name.'),
-    atomic_mass: z.number().nullable().describe('Atomic mass in unified atomic mass units.'),
-    atomic_mass_estimated: z.boolean().describe('True when atomic mass is estimated.'),
+    atomic_mass: z
+      .number()
+      .nullable()
+      .describe(
+        'Atomic mass in unified atomic mass units. Null for unstable elements with no standard mass.',
+      ),
+    atomic_mass_estimated: z
+      .boolean()
+      .describe(
+        'True when the atomic mass is estimated or based on the most stable isotope rather than a natural abundance average.',
+      ),
     electron_configuration: z.string().describe('Electron configuration (noble gas shorthand).'),
     group: z
       .number()
@@ -33,11 +42,15 @@ export const refElementsResource = resource('ref://elements/{number}', {
       .describe('Periodic table group (1–18), or null for lanthanides/actinides.'),
     period: z.number().int().describe('Periodic table period (1–7).'),
     block: z.string().describe('Electron block: s, p, d, or f.'),
-    category: z.string().describe('Element category.'),
+    category: z
+      .string()
+      .describe('Element category (e.g., "transition metal", "noble gas", "lanthanide").'),
     electronegativity_pauling: z
       .number()
       .nullable()
-      .describe('Pauling electronegativity, or null.'),
+      .describe(
+        'Pauling electronegativity scale value. Null for noble gases and heavy synthetic elements.',
+      ),
     density_g_per_cm3: z.number().nullable().describe('Density in g/cm³, or null.'),
     melting_point_k: z.number().nullable().describe('Melting point in K, or null.'),
     boiling_point_k: z.number().nullable().describe('Boiling point in K, or null.'),

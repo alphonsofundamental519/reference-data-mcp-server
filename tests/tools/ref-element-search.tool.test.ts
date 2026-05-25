@@ -109,6 +109,15 @@ describe('refElementSearch', () => {
     expect(text).toContain('noble gas');
   });
 
+  it('exact category match: "transition metal" does not return post-transition metals', async () => {
+    const ctx = createMockContext();
+    const input = refElementSearch.input.parse({ category: 'transition metal' });
+    const result = await refElementSearch.handler(input, ctx);
+    // All results must be transition metals, not post-transition metals
+    expect(result.results.every((el) => el.category === 'transition metal')).toBe(true);
+    expect(result.results.some((el) => el.category === 'post-transition metal')).toBe(false);
+  });
+
   it('formats message hint when present', () => {
     const output = {
       results: [],

@@ -21,10 +21,10 @@ export class ElementsService {
     this.byName = new Map();
     this.all = elements as ElementRecord[];
 
-    for (const el of elements) {
-      this.byNumber.set(el.number, el as ElementRecord);
-      this.bySymbol.set(el.symbol.toLowerCase(), el as ElementRecord);
-      this.byName.set(el.name.toLowerCase(), el as ElementRecord);
+    for (const el of this.all) {
+      this.byNumber.set(el.number, el);
+      this.bySymbol.set(el.symbol.toLowerCase(), el);
+      this.byName.set(el.name.toLowerCase(), el);
     }
   }
 
@@ -90,8 +90,19 @@ export class ElementsService {
     ctx.log.debug('Element search', opts);
 
     const categoryLower = category?.toLowerCase();
-    const matched = this.all.filter((el) => {
-      if (categoryLower && !el.category.toLowerCase().includes(categoryLower)) return false;
+
+    // Prefer exact match; fall back to substring if nothing found exactly.
+    // This prevents "transition metal" from inadvertently matching "post-transition metal".
+    const categoryFilter = categoryLower
+      ? (() => {
+          const exact = this.all.filter((el) => el.category.toLowerCase() === categoryLower);
+          return exact.length > 0
+            ? exact
+            : this.all.filter((el) => el.category.toLowerCase().includes(categoryLower));
+        })()
+      : this.all;
+
+    const matched = categoryFilter.filter((el) => {
       if (group != null && el.group !== group) return false;
       if (period != null && el.period !== period) return false;
       if (atomic_number_range) {

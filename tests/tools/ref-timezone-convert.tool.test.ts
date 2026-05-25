@@ -105,6 +105,26 @@ describe('refTimezoneConvert', () => {
     expect(result.target.datetime).toContain('07:30:00');
   });
 
+  it('throws invalid_timezone for empty from_tz', async () => {
+    const ctx = createMockContext({ errors: refTimezoneConvert.errors });
+    const input = refTimezoneConvert.input.parse({
+      datetime: '2026-05-24T15:30:00',
+      from_tz: '',
+      to_tz: 'Asia/Tokyo',
+    });
+    expect(() => refTimezoneConvert.handler(input, ctx)).toThrow(/Unrecognized source timezone/i);
+  });
+
+  it('throws invalid_timezone for empty to_tz', async () => {
+    const ctx = createMockContext({ errors: refTimezoneConvert.errors });
+    const input = refTimezoneConvert.input.parse({
+      datetime: '2026-05-24T15:30:00',
+      from_tz: 'Asia/Tokyo',
+      to_tz: '',
+    });
+    expect(() => refTimezoneConvert.handler(input, ctx)).toThrow(/Unrecognized target timezone/i);
+  });
+
   it('formats output with source, target, and UTC equivalent', () => {
     const output = {
       source: {

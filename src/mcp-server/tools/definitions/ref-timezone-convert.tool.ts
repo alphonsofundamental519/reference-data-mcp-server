@@ -34,7 +34,9 @@ export const refTimezoneConvert = tool('ref_timezone_convert', {
   output: z.object({
     source: z
       .object({
-        datetime: z.string().describe('Input local datetime string as provided.'),
+        datetime: z
+          .string()
+          .describe('Input local datetime echoed back (e.g., "2026-05-24T15:30:00").'),
         tz: z.string().describe('Resolved source IANA timezone ID.'),
         offset: z.string().describe('UTC offset at the source datetime (e.g., "+09:00").'),
       })

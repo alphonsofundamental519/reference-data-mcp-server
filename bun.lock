@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "reference-data-mcp-server",
+      "name": "@cyanheads/reference-data-mcp-server",
       "dependencies": {
         "@cyanheads/mcp-ts-core": "^0.9.9",
         "@vvo/tzdb": "^6.198.0",

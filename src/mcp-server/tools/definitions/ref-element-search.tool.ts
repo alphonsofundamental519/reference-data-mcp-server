@@ -77,7 +77,13 @@ export const refElementSearch = tool('ref_element_search', {
   ],
 
   handler(input, ctx) {
-    const searchOpts: Parameters<ReturnType<typeof getElementsService>['search']>[0] = {};
+    const searchOpts: {
+      category?: string;
+      group?: number;
+      period?: number;
+      atomic_number_range?: { min: number; max: number };
+      atomic_mass_range?: { min: number; max: number };
+    } = {};
     if (input.category?.trim()) searchOpts.category = input.category;
     if (input.group != null) searchOpts.group = input.group;
     if (input.period != null) searchOpts.period = input.period;

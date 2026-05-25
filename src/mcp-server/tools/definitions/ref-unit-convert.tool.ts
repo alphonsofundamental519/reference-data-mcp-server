@@ -5,7 +5,6 @@
 
 import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
-import type { ConversionError } from '@/services/units/units-service.js';
 import { getUnitsService } from '@/services/units/units-service.js';
 
 export const refUnitConvert = tool('ref_unit_convert', {
@@ -58,7 +57,7 @@ export const refUnitConvert = tool('ref_unit_convert', {
   handler(input, ctx) {
     const outcome = getUnitsService().convert(input.value, input.from, input.to, ctx);
     if ('error' in outcome) {
-      const err = outcome as ConversionError;
+      const err = outcome;
       if (err.error === 'unknown_unit') {
         throw ctx.fail(
           'unknown_unit',
@@ -74,7 +73,7 @@ export const refUnitConvert = tool('ref_unit_convert', {
       if (err.error === 'below_absolute_zero') {
         throw ctx.fail(
           'below_absolute_zero',
-          `Temperature ${err.value} ${err.from} is below absolute zero (≈ ${err.kelvin_equivalent.toFixed(2)} K). Absolute zero is 0 K / -273.15 °C / -459.67 °F.`,
+          `Temperature ${err.value} ${err.from} converts to ${err.kelvin_equivalent.toFixed(2)} K, which is below absolute zero (0 K = -273.15 °C = -459.67 °F).`,
         );
       }
       throw new Error(`Unexpected conversion error`);

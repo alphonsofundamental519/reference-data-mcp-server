@@ -66,6 +66,20 @@ describe('refMimeType', () => {
     expect(typeof result.compressible === 'boolean' || result.compressible === null).toBe(true);
   });
 
+  it('strips MIME parameters and resolves the base type', async () => {
+    const ctx = createMockContext();
+    const input = refMimeType.input.parse({ query: 'text/plain; charset=utf-8' });
+    const result = await refMimeType.handler(input, ctx);
+    expect(result.type).toBe('text/plain');
+  });
+
+  it('strips MIME parameters for application/json', async () => {
+    const ctx = createMockContext();
+    const input = refMimeType.input.parse({ query: 'application/json; charset=utf-8' });
+    const result = await refMimeType.handler(input, ctx);
+    expect(result.type).toBe('application/json');
+  });
+
   it('throws for unknown MIME type', async () => {
     const ctx = createMockContext({ errors: refMimeType.errors });
     const input = refMimeType.input.parse({ query: 'application/xyzzy-nonexistent-9999' });

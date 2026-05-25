@@ -8,11 +8,14 @@ import { createApp } from '@cyanheads/mcp-ts-core';
 // Resources
 import { refCountriesResource } from './mcp-server/resources/definitions/ref-countries.resource.js';
 import { refElementsResource } from './mcp-server/resources/definitions/ref-elements.resource.js';
-import { refTimezonesResource } from './mcp-server/resources/definitions/ref-timezones.resource.js';
+import {
+  refTimezonesResource,
+  refTimezonesSlashCatchResource,
+} from './mcp-server/resources/definitions/ref-timezones.resource.js';
+// Tools
 import { refConstantLookup } from './mcp-server/tools/definitions/ref-constant-lookup.tool.js';
 import { refElementLookup } from './mcp-server/tools/definitions/ref-element-lookup.tool.js';
 import { refElementSearch } from './mcp-server/tools/definitions/ref-element-search.tool.js';
-// Tools
 import { refGeoLookup } from './mcp-server/tools/definitions/ref-geo-lookup.tool.js';
 import { refGeoSearch } from './mcp-server/tools/definitions/ref-geo-search.tool.js';
 import { refHttpStatus } from './mcp-server/tools/definitions/ref-http-status.tool.js';
@@ -20,12 +23,12 @@ import { refMimeType } from './mcp-server/tools/definitions/ref-mime-type.tool.j
 import { refTimezoneConvert } from './mcp-server/tools/definitions/ref-timezone-convert.tool.js';
 import { refTimezoneLookup } from './mcp-server/tools/definitions/ref-timezone-lookup.tool.js';
 import { refUnitConvert } from './mcp-server/tools/definitions/ref-unit-convert.tool.js';
+// Services
 import { initConstantsService } from './services/constants/constants-service.js';
 import { initElementsService } from './services/elements/elements-service.js';
 import { initGeoService } from './services/geo/geo-service.js';
 import { initHttpStatusService } from './services/http-status/http-status-service.js';
 import { initMimeService } from './services/mime/mime-service.js';
-// Services
 import { initTimezoneService } from './services/timezone/timezone-service.js';
 import { initUnitsService } from './services/units/units-service.js';
 
@@ -42,7 +45,12 @@ await createApp({
     refHttpStatus,
     refMimeType,
   ],
-  resources: [refCountriesResource, refElementsResource, refTimezonesResource],
+  resources: [
+    refCountriesResource,
+    refElementsResource,
+    refTimezonesResource,
+    refTimezonesSlashCatchResource,
+  ],
   prompts: [],
   instructions:
     'Pure in-memory reference data server. No external API calls, no auth required. ' +

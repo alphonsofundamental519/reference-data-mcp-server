@@ -24,12 +24,8 @@ function formatPrecision(n: number): string {
 
 function getMeasureForUnit(unitStr: string): string | null {
   try {
-    const measures = convert().measures();
-    for (const measure of measures) {
-      const possibilities = convert().possibilities(
-        measure as Parameters<typeof convert>[0] extends undefined ? never : string,
-      );
-      if (possibilities.includes(unitStr as never)) return measure;
+    for (const measure of convert().measures()) {
+      if (convert().possibilities(measure).includes(unitStr)) return measure;
     }
   } catch {
     /* ignore */
@@ -83,22 +79,20 @@ export class UnitsService {
     if (fromMeasure === 'temperature') {
       let kelvin_equivalent: number;
       try {
-        kelvin_equivalent = convert(value)
-          .from(from as never)
-          .to('K' as never);
+        kelvin_equivalent = convert(value).from(from).to('K');
       } catch {
         kelvin_equivalent = NaN;
       }
-      if (!Number.isNaN(kelvin_equivalent) && kelvin_equivalent < 0) {
+      // Use a small epsilon to absorb float imprecision (e.g., -459.67 F = 0 K exactly but
+      // the library may compute a tiny negative value like -1.4e-13).
+      if (!Number.isNaN(kelvin_equivalent) && kelvin_equivalent < -1e-9) {
         return { error: 'below_absolute_zero', from, value, kelvin_equivalent };
       }
     }
 
     let result: number;
     try {
-      result = convert(value)
-        .from(from as never)
-        .to(to as never);
+      result = convert(value).from(from).to(to);
     } catch (err) {
       throw new Error(
         `Unit conversion from "${from}" to "${to}" failed: ${err instanceof Error ? err.message : String(err)}. Ensure both units measure the same quantity.`,

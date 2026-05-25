@@ -36,7 +36,18 @@ export class HttpStatusService {
   lookup(query: string | number, ctx: Context): HttpStatusResult | undefined {
     ctx.log.debug('HTTP status lookup', { query });
 
-    const numQuery = typeof query === 'number' ? query : parseInt(String(query), 10);
+    const queryStr = String(query).trim();
+    // Only treat as a numeric code when the string is a plain integer — reject floats
+    // like "404.5" that parseInt() would silently truncate.
+    const isIntegerString = /^\d+$/.test(queryStr);
+    const numQuery =
+      typeof query === 'number'
+        ? Number.isInteger(query)
+          ? query
+          : NaN
+        : isIntegerString
+          ? parseInt(queryStr, 10)
+          : NaN;
 
     if (!Number.isNaN(numQuery)) {
       const status = this.byCode.get(numQuery);
@@ -54,7 +65,7 @@ export class HttpStatusService {
 
     if (matches.length === 0) return;
 
-    const primary = matches[0] as (typeof matches)[number];
+    const primary = matches[0]!;
     const altMatches = matches.slice(1).map((s) => ({
       code: s.code,
       reason_phrase: s.reason_phrase,

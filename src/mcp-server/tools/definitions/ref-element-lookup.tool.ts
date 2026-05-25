@@ -5,7 +5,7 @@
 
 import { tool, z } from '@cyanheads/mcp-ts-core';
 import { JsonRpcErrorCode } from '@cyanheads/mcp-ts-core/errors';
-import { getElementsService } from '@/services/elements/elements-service.js';
+import { DATASET_VERSION, getElementsService } from '@/services/elements/elements-service.js';
 
 export const refElementLookup = tool('ref_element_lookup', {
   title: 'Element Lookup',
@@ -142,7 +142,7 @@ export const refElementLookup = tool('ref_element_lookup', {
       phase_at_stp: el.phase_at_stp,
       radioactive: el.radioactive,
       natural: el.natural,
-      dataset_version: 'PubChem/IUPAC 2024',
+      dataset_version: DATASET_VERSION,
     };
   },
 
@@ -161,7 +161,9 @@ export const refElementLookup = tool('ref_element_lookup', {
       `**Boiling point:** ${result.boiling_point_k != null ? `${result.boiling_point_k} K` : 'N/A'}`,
       `**Appearance:** ${result.appearance ?? 'N/A'}`,
       '',
-      `**Discovered:** ${result.discovery_year ?? 'Ancient'} by ${result.discovery_scientists ?? 'unknown'}`,
+      result.discovery_year == null && result.discovery_scientists === 'Ancient'
+        ? '**Discovered:** Known since antiquity'
+        : `**Discovered:** ${result.discovery_year ?? 'unknown year'} by ${result.discovery_scientists ?? 'unknown'}`,
       `**Dataset:** ${result.dataset_version}`,
     ];
     return [{ type: 'text', text: lines.join('\n') }];

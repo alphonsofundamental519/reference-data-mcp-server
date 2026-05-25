@@ -85,9 +85,14 @@ export const refGeoSearch = tool('ref_geo_search', {
   ],
 
   handler(input, ctx) {
-    const searchOpts: Parameters<ReturnType<typeof getGeoService>['search']>[0] = {
-      limit: input.limit,
-    };
+    const searchOpts: {
+      keyword?: string;
+      region?: string;
+      subregion?: string;
+      language?: string;
+      currency?: string;
+      limit?: number;
+    } = { limit: input.limit };
     if (input.keyword?.trim()) searchOpts.keyword = input.keyword;
     if (input.region?.trim()) searchOpts.region = input.region;
     if (input.subregion?.trim()) searchOpts.subregion = input.subregion;

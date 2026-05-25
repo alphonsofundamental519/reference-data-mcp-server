@@ -105,6 +105,36 @@ describe('refElementLookup', () => {
     expect(text).toContain('PubChem/IUPAC 2024');
   });
 
+  it('formats antiquity elements as "Known since antiquity"', () => {
+    const output = {
+      number: 6,
+      symbol: 'C',
+      name: 'Carbon',
+      atomic_mass: 12.011,
+      atomic_mass_estimated: false,
+      electron_configuration: '[He] 2s2 2p2',
+      group: 14,
+      period: 2,
+      block: 'p',
+      category: 'reactive nonmetal',
+      electronegativity_pauling: 2.55,
+      density_g_per_cm3: 2.267,
+      melting_point_k: 3823,
+      boiling_point_k: 4098,
+      discovery_year: null,
+      discovery_scientists: 'Ancient',
+      appearance: 'black (graphite) or clear (diamond)',
+      phase_at_stp: 'Solid',
+      radioactive: false,
+      natural: true,
+      dataset_version: 'PubChem/IUPAC 2024',
+    };
+    const blocks = refElementLookup.format!(output);
+    const text = blocks[0]!.text as string;
+    expect(text).toContain('Known since antiquity');
+    expect(text).not.toContain('Ancient by Ancient');
+  });
+
   it('formats null properties as N/A', () => {
     const output = {
       number: 118,

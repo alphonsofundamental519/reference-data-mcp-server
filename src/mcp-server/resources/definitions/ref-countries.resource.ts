@@ -24,7 +24,10 @@ export const refCountriesResource = resource('ref://countries/{alpha2}', {
     alpha3: z.string().describe('ISO alpha-3 code.'),
     name: z.string().describe('Official English country name.'),
     native_name: z.string().describe('Country name in the primary native language.'),
-    capital: z.string().nullable().describe('Capital city name, or null.'),
+    capital: z
+      .string()
+      .nullable()
+      .describe('Capital city name, or null if not applicable (e.g., Antarctica).'),
     region: z.string().describe('Continent-level region.'),
     subregion: z.string().nullable().describe('Subregion, or null if unavailable.'),
     languages: z
@@ -49,7 +52,10 @@ export const refCountriesResource = resource('ref://countries/{alpha2}', {
       )
       .describe('Currencies used.'),
     calling_codes: z.array(z.string()).describe('International dialing codes with + prefix.'),
-    tld: z.string().nullable().describe('Country-code top-level domain.'),
+    tld: z
+      .string()
+      .nullable()
+      .describe('Country-code top-level domain (e.g., ".de"), or null if not applicable.'),
     flag: z.string().describe('Flag emoji.'),
     timezones: z.array(z.string()).describe('IANA timezone IDs observed in this country.'),
   }),

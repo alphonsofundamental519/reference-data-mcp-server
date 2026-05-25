@@ -4,7 +4,13 @@
  */
 
 import type { Context } from '@cyanheads/mcp-ts-core';
-import { countries, getCountryData, getEmojiFlag, languages } from 'countries-list';
+import {
+  countries,
+  getCountryData,
+  getEmojiFlag,
+  languages,
+  type TLanguageCode,
+} from 'countries-list';
 import { getTimezoneService } from '../timezone/timezone-service.js';
 import type { CountryRecord, CountrySummary, Currency } from './types.js';
 
@@ -329,7 +335,7 @@ function normalizeCountry(alpha2: string): CountryRecord {
   // Build language list
   const langs = (data.languages ?? []).map((code) => ({
     code,
-    name: (languages as Record<string, { name: string }>)[code]?.name ?? code,
+    name: languages[code as TLanguageCode]?.name ?? code,
   }));
 
   // Build currency list

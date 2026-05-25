@@ -71,6 +71,18 @@ describe('refHttpStatus', () => {
     expect(() => refHttpStatus.handler(input, ctx)).toThrow(/not a registered IANA code|999/);
   });
 
+  it('throws not-found for float query like "404.5" (does not silently match 404)', async () => {
+    const ctx = createMockContext({ errors: refHttpStatus.errors });
+    const input = refHttpStatus.input.parse({ query: '404.5' });
+    expect(() => refHttpStatus.handler(input, ctx)).toThrow(/No HTTP status code matched/);
+  });
+
+  it('throws not-found for "200.0" (does not silently match 200)', async () => {
+    const ctx = createMockContext({ errors: refHttpStatus.errors });
+    const input = refHttpStatus.input.parse({ query: '200.0' });
+    expect(() => refHttpStatus.handler(input, ctx)).toThrow(/No HTTP status code matched/);
+  });
+
   it('throws for unrecognized keyword', async () => {
     const ctx = createMockContext({ errors: refHttpStatus.errors });
     const input = refHttpStatus.input.parse({ query: 'xyzzy_no_match_keyword' });

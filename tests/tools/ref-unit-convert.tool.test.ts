@@ -95,6 +95,21 @@ describe('refUnitConvert', () => {
     expect(result.result).toBeCloseTo(0, 1);
   });
 
+  it('accepts -459.67 F (absolute zero in Fahrenheit, should not be rejected)', async () => {
+    const ctx = createMockContext({ errors: refUnitConvert.errors });
+    const input = refUnitConvert.input.parse({ value: -459.67, from: 'F', to: 'C' });
+    const result = await refUnitConvert.handler(input, ctx);
+    expect(result.result).toBeCloseTo(-273.15, 1);
+  });
+
+  it('below_absolute_zero error message states the input kelvin equivalent clearly', async () => {
+    const ctx = createMockContext({ errors: refUnitConvert.errors });
+    const input = refUnitConvert.input.parse({ value: -300, from: 'C', to: 'F' });
+    expect(() => refUnitConvert.handler(input, ctx)).toThrow(
+      /converts to.*K.*below absolute zero/i,
+    );
+  });
+
   it('formats output with value, units, result, and measure', () => {
     const output = {
       value: 1,

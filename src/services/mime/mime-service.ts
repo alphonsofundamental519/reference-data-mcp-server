@@ -6,6 +6,9 @@
 import type { Context } from '@cyanheads/mcp-ts-core';
 import mimeDb from 'mime-db';
 
+type MimeEntry = { extensions?: string[]; compressible?: boolean; source?: string };
+const db = mimeDb as Record<string, MimeEntry>;
+
 export interface MimeResult {
   alternatives?: Array<{ type: string; source: string | null }>;
   compressible: boolean | null;
@@ -19,9 +22,8 @@ export class MimeService {
 
   constructor() {
     this.byExtension = new Map();
-    for (const [type, info] of Object.entries(mimeDb)) {
-      const exts = (info as { extensions?: string[] }).extensions ?? [];
-      for (const ext of exts) {
+    for (const [type, info] of Object.entries(db)) {
+      for (const ext of info.extensions ?? []) {
         const existing = this.byExtension.get(ext) ?? [];
         existing.push(type);
         this.byExtension.set(ext, existing);
@@ -37,12 +39,13 @@ export class MimeService {
 
     // Check if it looks like a MIME type (contains '/')
     if (normalized.includes('/')) {
-      const info = (
-        mimeDb as Record<string, { extensions?: string[]; compressible?: boolean; source?: string }>
-      )[normalized.toLowerCase()];
+      // Strip MIME parameters (e.g., "; charset=utf-8") before lookup — agents commonly
+      // pass full Content-Type strings directly.
+      const baseType = (normalized.split(';')[0] ?? normalized).trim().toLowerCase();
+      const info = db[baseType];
       if (!info) return;
       return {
-        type: normalized.toLowerCase(),
+        type: baseType,
         extensions: info.extensions ?? [],
         compressible: info.compressible ?? null,
         source: info.source ?? null,
@@ -54,14 +57,11 @@ export class MimeService {
     const types = this.byExtension.get(ext);
     if (!types || types.length === 0) return;
 
-    // types.length > 0 is guaranteed by the guard above
-    const primary = types[0] as string;
-    const primaryInfo = (
-      mimeDb as Record<string, { extensions?: string[]; compressible?: boolean; source?: string }>
-    )[primary];
+    const primary = types[0]!;
+    const primaryInfo = db[primary];
     const alternatives = types.slice(1).map((t) => ({
       type: t,
-      source: (mimeDb as Record<string, { source?: string }>)[t]?.source ?? null,
+      source: db[t]?.source ?? null,
     }));
 
     const mimeResult: MimeResult = {

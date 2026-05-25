@@ -173,6 +173,9 @@ export class TimezoneService {
 
   /** Resolve a query to an IANA timezone ID, or throw */
   private resolveIanaId(query: string): string | null {
+    // Reject empty or whitespace-only strings — startsWith('') matches everything
+    if (!query.trim()) return null;
+
     // Handle UTC and GMT aliases — valid IANA identifiers not in tzdb or Intl.supportedValuesOf
     const utcAliases: Record<string, string> = {
       utc: 'UTC',
