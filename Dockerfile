@@ -17,8 +17,8 @@ RUN bun install --frozen-lockfile
 # Copy the rest of the source code
 COPY . .
 
-# Build the application
-RUN bun run build
+# Build the application (npm run build uses node/tsx, which is required for the build scripts)
+RUN npm run build
 
 
 # ==============================================================================
