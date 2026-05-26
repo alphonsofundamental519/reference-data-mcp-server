@@ -1,6 +1,6 @@
 {
   "name": "@cyanheads/reference-data-mcp-server",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "mcpName": "io.github.cyanheads/reference-data-mcp-server",
   "description": "Look up countries, timezones, periodic table elements, physical constants, units, HTTP status codes, and MIME types via MCP. STDIO or Streamable HTTP.",
   "type": "module",
@@ -9,16 +9,7 @@
   "bin": {
     "reference-data-mcp-server": "dist/index.js"
   },
-  "files": [
-    "changelog/",
-    "dist/",
-    "README.md",
-    "LICENSE",
-    "CLAUDE.md",
-    "AGENTS.md",
-    "Dockerfile",
-    "server.json"
-  ],
+  "files": ["dist/", "README.md", "LICENSE", "CLAUDE.md", "Dockerfile", "server.json"],
   "scripts": {
     "build": "bun run scripts/build.ts",
     "rebuild": "bun run scripts/clean.ts && bun run build",
@@ -33,6 +24,7 @@
     "bundle": "bun run build && npx -y @anthropic-ai/mcpb pack . dist/reference-data-mcp-server.mcpb",
     "changelog:build": "bun run scripts/build-changelog.ts",
     "changelog:check": "bun run scripts/build-changelog.ts --check",
+    "publish-mcp": "mcp-publisher login github -token \"$(security find-generic-password -a \"$USER\" -s mcp-publisher-github-pat -w)\" && mcp-publisher publish",
     "test": "bunx vitest run",
     "start:stdio": "MCP_TRANSPORT_TYPE=stdio bun ./dist/index.js",
     "start:http": "MCP_TRANSPORT_TYPE=http bun ./dist/index.js"
@@ -43,6 +35,7 @@
     "model-context-protocol",
     "typescript",
     "bun",
+    "ai-agent",
     "stdio",
     "streamable-http",
     "reference-data",
