@@ -77,7 +77,7 @@ export const refGeoSearch = tool('ref_geo_search', {
   errors: [
     {
       reason: 'no_filters',
-      code: JsonRpcErrorCode.InvalidParams,
+      code: JsonRpcErrorCode.ValidationError,
       when: 'No filter or keyword was provided.',
       recovery:
         'Provide at least one of keyword, region, language, subregion, or currency to filter by.',

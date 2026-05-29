@@ -1,0 +1,25 @@
+{
+  "name": "@cyanheads/reference-data-mcp-server",
+  "version": "0.1.6",
+  "description": "Look up countries, timezones, periodic table elements, physical constants, units, HTTP status codes, and MIME types via MCP. STDIO or Streamable HTTP.",
+  "author": {
+    "name": "cyanheads",
+    "email": "casey@caseyjhand.com",
+    "url": "https://github.com/cyanheads"
+  },
+  "homepage": "https://github.com/cyanheads/reference-data-mcp-server#readme",
+  "repository": "https://github.com/cyanheads/reference-data-mcp-server.git",
+  "license": "Apache-2.0",
+  "keywords": ["mcp", "mcp-server", "model-context-protocol", "reference-data", "countries", "timezones", "periodic-table", "unit-conversion"],
+  "mcpServers": "./.codex-plugin/mcp.json",
+  "interface": {
+    "displayName": "@cyanheads/reference-data-mcp-server",
+    "shortDescription": "Look up countries, timezones, periodic table elements, physical constants, units, HTTP status codes, and MIME types via MCP.",
+    "longDescription": "Pure in-memory reference data server. No external API calls, no auth required. Covers countries (ISO 3166), IANA timezones, periodic table elements, CODATA 2022 physical constants, unit conversion, IANA HTTP status codes, and MIME types.",
+    "developerName": "cyanheads",
+    "category": "reference",
+    "capabilities": ["Read"],
+    "websiteURL": "https://github.com/cyanheads/reference-data-mcp-server",
+    "defaultPrompt": []
+  }
+}

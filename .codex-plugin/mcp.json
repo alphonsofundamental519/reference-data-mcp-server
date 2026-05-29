@@ -1,0 +1,9 @@
+{
+  "@cyanheads/reference-data-mcp-server": {
+    "command": "npx",
+    "args": ["-y", "@cyanheads/reference-data-mcp-server"],
+    "env": {
+      "MCP_TRANSPORT_TYPE": "stdio"
+    }
+  }
+}

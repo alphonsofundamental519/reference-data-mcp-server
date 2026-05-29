@@ -69,7 +69,7 @@ export const refElementSearch = tool('ref_element_search', {
   errors: [
     {
       reason: 'no_filters',
-      code: JsonRpcErrorCode.InvalidParams,
+      code: JsonRpcErrorCode.ValidationError,
       when: 'No filter was provided.',
       recovery:
         'Provide at least one filter: category, group, period, atomic_number_range, or atomic_mass_range.',

@@ -33,7 +33,7 @@ export const refUnitConvert = tool('ref_unit_convert', {
   errors: [
     {
       reason: 'incompatible_units',
-      code: JsonRpcErrorCode.InvalidParams,
+      code: JsonRpcErrorCode.ValidationError,
       when: 'The source and target units measure different physical quantities.',
       recovery:
         'Ensure both from and to units measure the same physical quantity (e.g., both length, both mass, both temperature).',
@@ -47,7 +47,7 @@ export const refUnitConvert = tool('ref_unit_convert', {
     },
     {
       reason: 'below_absolute_zero',
-      code: JsonRpcErrorCode.InvalidParams,
+      code: JsonRpcErrorCode.ValidationError,
       when: 'The input temperature is below absolute zero (0 K = -273.15 °C = -459.67 °F).',
       recovery:
         'Provide a temperature at or above absolute zero. Absolute zero is 0 K, -273.15 C, or -459.67 F.',
