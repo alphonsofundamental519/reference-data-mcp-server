@@ -1,6 +1,6 @@
 {
   "name": "@cyanheads/reference-data-mcp-server",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "mcpName": "io.github.cyanheads/reference-data-mcp-server",
   "description": "Look up countries, timezones, periodic table elements, physical constants, units, HTTP status codes, and MIME types via MCP. STDIO or Streamable HTTP.",
   "type": "module",
@@ -18,7 +18,8 @@
     "audit:refresh": "rm -f bun.lock && bun install && bun audit",
     "tree": "bun run scripts/tree.ts",
     "list-skills": "bun run scripts/list-skills.ts",
-    "format": "biome check --write --unsafe .",
+    "format": "biome check --write .",
+    "format:unsafe": "biome check --write --unsafe .",
     "lint:mcp": "bun run scripts/lint-mcp.ts",
     "lint:packaging": "bun run scripts/lint-packaging.ts",
     "bundle": "bun run build && npx -y @anthropic-ai/mcpb pack . dist/reference-data-mcp-server.mcpb",
@@ -77,7 +78,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@cyanheads/mcp-ts-core": "^0.9.13",
+    "@cyanheads/mcp-ts-core": "^0.9.16",
     "@vvo/tzdb": "^6.198.0",
     "convert-units": "^2.3.4",
     "countries-list": "^3.3.0",
