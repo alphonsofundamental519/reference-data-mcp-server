@@ -57,14 +57,46 @@ export const refElementSearch = tool('ref_element_search', {
     results: z
       .array(ElementSummarySchema.describe('Summary for a matching element.'))
       .describe('Matching element summaries.'),
-    total_matches: z.number().int().describe('Number of elements matching all filters.'),
-    message: z
+  }),
+
+  // Agent-facing context: total match count and empty-result guidance.
+  enrichment: {
+    totalMatches: z.number().int().describe('Number of elements matching all filters.'),
+    appliedFilters: z
+      .object({
+        category: z.string().optional().describe('Category filter applied.'),
+        group: z.number().int().optional().describe('Group filter applied.'),
+        period: z.number().int().optional().describe('Period filter applied.'),
+        atomic_number_range: RangeSchema.optional().describe('Atomic number range applied.'),
+        atomic_mass_range: RangeSchema.optional().describe('Atomic mass range applied.'),
+      })
+      .describe('Active filters applied to the search.'),
+    notice: z
       .string()
       .optional()
       .describe(
-        'Recovery hint when no results found — echoes active filters and suggests how to broaden.',
+        'Recovery hint when no elements matched — echoes active filters and suggests how to broaden.',
       ),
-  }),
+  },
+
+  enrichmentTrailer: {
+    totalMatches: { label: 'Total Matches' },
+    appliedFilters: {
+      render: (filters) => {
+        const parts: string[] = [];
+        if (filters.category) parts.push(`category="${filters.category}"`);
+        if (filters.group != null) parts.push(`group=${filters.group}`);
+        if (filters.period != null) parts.push(`period=${filters.period}`);
+        if (filters.atomic_number_range)
+          parts.push(`Z=${filters.atomic_number_range.min}–${filters.atomic_number_range.max}`);
+        if (filters.atomic_mass_range)
+          parts.push(`mass=${filters.atomic_mass_range.min}–${filters.atomic_mass_range.max} u`);
+        return parts.length > 0
+          ? `**Applied Filters:** ${parts.join(', ')}`
+          : '**Applied Filters:** none';
+      },
+    },
+  },
 
   errors: [
     {
@@ -115,6 +147,8 @@ export const refElementSearch = tool('ref_element_search', {
 
     const { results, total_matches } = getElementsService().search(searchOpts, ctx);
 
+    ctx.enrich({ totalMatches: total_matches, appliedFilters: searchOpts });
+
     if (total_matches === 0) {
       const filterDesc = [
         input.category && `category="${input.category}"`,
@@ -127,20 +161,16 @@ export const refElementSearch = tool('ref_element_search', {
       ]
         .filter(Boolean)
         .join(', ');
-      return {
-        results: [],
-        total_matches: 0,
-        message: `No elements matched filters: ${filterDesc}. Try a broader category or wider range.`,
-      };
+      ctx.enrich.notice(
+        `No elements matched filters: ${filterDesc}. Try a broader category or wider range.`,
+      );
     }
 
-    return { results, total_matches };
+    return { results };
   },
 
   format: (result) => {
     const lines: string[] = [];
-    lines.push(`**Total matches:** ${result.total_matches}`);
-    if (result.message) lines.push(`\n> ${result.message}`);
     for (const el of result.results) {
       const massStr =
         el.atomic_mass != null

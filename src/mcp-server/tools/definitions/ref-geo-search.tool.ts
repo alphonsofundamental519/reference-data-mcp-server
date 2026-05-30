@@ -59,20 +59,51 @@ export const refGeoSearch = tool('ref_geo_search', {
     results: z
       .array(CountrySummarySchema.describe('Summary for a matching country.'))
       .describe('Matching country summaries, up to limit.'),
-    total_matches: z
+  }),
+
+  // Agent-facing context: total match count, truncation flag, applied filters, and empty-result guidance.
+  enrichment: {
+    totalMatches: z
       .number()
       .int()
       .describe('Total countries matching the filters before limit is applied.'),
     truncated: z
       .boolean()
-      .describe('True when total_matches exceeds the limit and results are cut off.'),
-    message: z
+      .describe('True when totalMatches exceeds the limit and results are cut off.'),
+    appliedFilters: z
+      .object({
+        keyword: z.string().optional().describe('Keyword filter applied.'),
+        region: z.string().optional().describe('Region filter applied.'),
+        subregion: z.string().optional().describe('Subregion filter applied.'),
+        language: z.string().optional().describe('Language filter applied.'),
+        currency: z.string().optional().describe('Currency filter applied.'),
+        limit: z.number().int().describe('Result limit applied.'),
+      })
+      .describe('Active filters applied to the search.'),
+    notice: z
       .string()
       .optional()
       .describe(
-        'Recovery hint when no results found — echoes active filters and suggests how to broaden.',
+        'Recovery hint when no countries matched — echoes active filters and suggests how to broaden.',
       ),
-  }),
+  },
+
+  enrichmentTrailer: {
+    totalMatches: { label: 'Total Matches' },
+    truncated: { label: 'Truncated' },
+    appliedFilters: {
+      render: (filters) => {
+        const parts: string[] = [];
+        if (filters.keyword) parts.push(`keyword="${filters.keyword}"`);
+        if (filters.region) parts.push(`region="${filters.region}"`);
+        if (filters.subregion) parts.push(`subregion="${filters.subregion}"`);
+        if (filters.language) parts.push(`language="${filters.language}"`);
+        if (filters.currency) parts.push(`currency="${filters.currency}"`);
+        parts.push(`limit=${filters.limit}`);
+        return `**Applied Filters:** ${parts.join(', ')}`;
+      },
+    },
+  },
 
   errors: [
     {
@@ -115,6 +146,16 @@ export const refGeoSearch = tool('ref_geo_search', {
     const { results, total_matches } = getGeoService().search(searchOpts, ctx);
 
     const truncated = total_matches > results.length;
+    const appliedFilters = {
+      ...(searchOpts.keyword && { keyword: searchOpts.keyword }),
+      ...(searchOpts.region && { region: searchOpts.region }),
+      ...(searchOpts.subregion && { subregion: searchOpts.subregion }),
+      ...(searchOpts.language && { language: searchOpts.language }),
+      ...(searchOpts.currency && { currency: searchOpts.currency }),
+      limit: input.limit,
+    };
+
+    ctx.enrich({ totalMatches: total_matches, truncated, appliedFilters });
 
     if (total_matches === 0) {
       const filterDesc = [
@@ -126,23 +167,16 @@ export const refGeoSearch = tool('ref_geo_search', {
       ]
         .filter(Boolean)
         .join(', ');
-      return {
-        results: [],
-        total_matches: 0,
-        truncated: false,
-        message: `No countries matched filters: ${filterDesc}. Try broadening your search by removing or changing a filter.`,
-      };
+      ctx.enrich.notice(
+        `No countries matched filters: ${filterDesc}. Try broadening your search by removing or changing a filter.`,
+      );
     }
 
-    return { results, total_matches, truncated };
+    return { results };
   },
 
   format: (result) => {
     const lines: string[] = [];
-    lines.push(
-      `**Total matches:** ${result.total_matches}${result.truncated ? ` (truncated)` : ''}`,
-    );
-    if (result.message) lines.push(`\n> ${result.message}`);
     for (const c of result.results) {
       lines.push(`${c.flag} **${c.name}** (${c.alpha2} / ${c.alpha3})`);
       lines.push(
