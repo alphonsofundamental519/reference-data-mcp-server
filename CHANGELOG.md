@@ -2,6 +2,10 @@
 
 All notable changes to this project. Each entry links to its full per-version file in [changelog/](changelog/).
 
+## [0.1.7](changelog/0.1.x/0.1.7.md) — 2026-05-30
+
+enrichment adoption on ref_geo_search and ref_element_search — applied-filter echo, true match totals, and empty-result guidance in typed enrichment block
+
 ## [0.1.6](changelog/0.1.x/0.1.6.md) — 2026-05-28 · 🛡️ Security
 
 mcp-ts-core ^0.9.9 → ^0.9.13: 413 body cap, HTTP session-init gate, quieter error logs, GET /mcp keywords; ValidationError reclassifications; dep refresh
